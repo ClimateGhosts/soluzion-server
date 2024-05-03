@@ -1,0 +1,20 @@
+{
+  "name": "soluzion_types",
+  "description": "Common type generation for soluzion servers and clients",
+  "dependencies": {
+    "quicktype": "^23.0.158",
+    "typescript": "^5.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5"
+  },
+  "scripts": {
+    "dev": "nodemon",
+    "generate": "npm run generateServer && npm run generateClient && npm run generateOutput",
+    "generateServer": "quicktype soluzion-types.ts -o ../soluzion_server/soluzion_types.py",
+    "generateClient": "quicktype soluzion-types.ts -o ../soluzion_test_client/soluzion_types.py",
+    "generateOutput": "npm run generateC#",
+    "generateC#": "quicktype soluzion-types.ts -o output/SoluzionTypes.cs"
+  }
+}
