@@ -9,7 +9,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.9",  # Specify the minimum version of Python required
-    install_requires=["setuptools>=53.0.0", "flask~=3.0.3", "flask-socketio~=5.3.6"],
+    install_requires=["setuptools>=53.0.0", "flask~=3.0.3", "flask-socketio~=5.3.6", "python-socketio[client]~=5.11.2"],
     entry_points={
         "console_scripts": [
             "soluzion_server=soluzion_server.main:main",

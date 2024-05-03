@@ -4,28 +4,31 @@ from dataclasses import dataclass
 from typing import Optional
 
 import soluzion_server.soluzion_types
-from soluzion_server.soluzion_expanded import Problem, AdvancedState
+from soluzion_server.soluzion_expanded import Problem, ExpandedState
 
 PROBLEM: Problem | None = None
 
 
 # region Global Data Structures
 
+
 @dataclass
 class PlayerSession:
     sid: str
     name: Optional[str]
     room: Optional[str]
-    role: Optional[int]
+    roles: set[int]
 
 
 @dataclass
 class GameSession:
-    current_state: AdvancedState
-    state_stack: list[AdvancedState]
+    current_state: ExpandedState
+    state_stack: list[ExpandedState]
     owner_sid: str
     room: str
-    players: dict[str, int | None]  # Mapping of sid to role number
+    players: dict[str, set[int]]  # Mapping of sid to role number
+    step: int = 0
+    depth: int = 0
 
 
 @dataclass
@@ -44,6 +47,7 @@ room_sessions: dict[str, RoomSession] = {}
 # endregion
 
 # region Global Functions
+
 
 def current_player(sid: str) -> PlayerSession | None:
     if sid in connected_players:
@@ -75,8 +79,10 @@ def current_game(sid: str) -> GameSession | None:
 
 for name, obj in inspect.getmembers(soluzion_server.soluzion_types):
     if inspect.isclass(obj) and issubclass(obj, enum.Enum):
+
         def new_str(self):
             return str(self.value)
+
         obj.__str__ = new_str
 
 # end region

@@ -6,7 +6,7 @@ from soluzion_server.problem_loading import load_problem
 
 load_problem()
 
-
+# Only import these after the problem has been loaded
 from soluzion_server.room_management import configure_room_handlers
 from soluzion_server.game_management import configure_game_handlers
 
@@ -20,6 +20,7 @@ configure_room_handlers(socketio)
 
 # Add the handlers for processing game events
 configure_game_handlers(socketio)
+
 
 def main():
     """

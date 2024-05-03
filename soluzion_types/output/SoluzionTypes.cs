@@ -5,12 +5,12 @@
 //    using QuickType;
 //
 //    var sharedEvent = SharedEvent.FromJson(jsonString);
-//    var serverError = ServerError.FromJson(jsonString);
-//    var serverEvents = ServerEvents.FromJson(jsonString);
 //    var serverEvent = ServerEvent.FromJson(jsonString);
-//    var clientEvents = ClientEvents.FromJson(jsonString);
+//    var serverEvents = ServerEvents.FromJson(jsonString);
 //    var clientEvent = ClientEvent.FromJson(jsonString);
-//    var operatorParam = OperatorParam.FromJson(jsonString);
+//    var clientEvents = ClientEvents.FromJson(jsonString);
+//    var serverError = ServerError.FromJson(jsonString);
+//    var role = Role.FromJson(jsonString);
 
 namespace QuickType
 {
@@ -21,9 +21,6 @@ namespace QuickType
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    /// <summary>
-    /// Events handled by the server (sent by the client)
-    /// </summary>
     public partial class ServerEvents
     {
         [JsonProperty("create_room")]
@@ -34,6 +31,12 @@ namespace QuickType
 
         [JsonProperty("operator_chosen")]
         public OperatorChosen OperatorChosen { get; set; }
+
+        [JsonProperty("set_name")]
+        public SetName SetName { get; set; }
+
+        [JsonProperty("set_roles")]
+        public SetRoles SetRoles { get; set; }
     }
 
     public partial class CreateRoom
@@ -44,9 +47,6 @@ namespace QuickType
 
     public partial class JoinRoom
     {
-        [JsonProperty("role")]
-        public double? Role { get; set; }
-
         [JsonProperty("room")]
         public string Room { get; set; }
 
@@ -63,16 +63,40 @@ namespace QuickType
         public object[] Params { get; set; }
     }
 
-    /// <summary>
-    /// Events handled by the client (sent by the server)
-    /// </summary>
+    public partial class SetName
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+    }
+
+    public partial class SetRoles
+    {
+        [JsonProperty("roles")]
+        public double[] Roles { get; set; }
+    }
+
     public partial class ClientEvents
     {
         [JsonProperty("error")]
         public Error Error { get; set; }
 
+        [JsonProperty("game_ended")]
+        public GameEnded GameEnded { get; set; }
+
+        /// <summary>
+        /// This is a comment
+        /// </summary>
+        [JsonProperty("game_started")]
+        public GameStarted GameStarted { get; set; }
+
+        [JsonProperty("operator_applied")]
+        public OperatorApplied OperatorApplied { get; set; }
+
         [JsonProperty("operators_available")]
         public OperatorsAvailable OperatorsAvailable { get; set; }
+
+        [JsonProperty("roles_changed")]
+        public RolesChanged RolesChanged { get; set; }
 
         [JsonProperty("room_created")]
         public RoomCreated RoomCreated { get; set; }
@@ -83,8 +107,8 @@ namespace QuickType
         [JsonProperty("room_left")]
         public RoomLeft RoomLeft { get; set; }
 
-        [JsonProperty("state_updated")]
-        public StateUpdated StateUpdated { get; set; }
+        [JsonProperty("transition")]
+        public Transition Transition { get; set; }
     }
 
     public partial class Error
@@ -99,13 +123,55 @@ namespace QuickType
         public string Message { get; set; }
     }
 
+    public partial class GameEnded
+    {
+        [JsonProperty("message")]
+        public string Message { get; set; }
+    }
+
+    /// <summary>
+    /// This is a comment
+    /// </summary>
+    public partial class GameStarted
+    {
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("state")]
+        public string State { get; set; }
+    }
+
+    public partial class OperatorApplied
+    {
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("operator")]
+        public OperatorAppliedOperator Operator { get; set; }
+
+        [JsonProperty("state")]
+        public string State { get; set; }
+    }
+
+    public partial class OperatorAppliedOperator
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("op_no")]
+        public double OpNo { get; set; }
+
+        [JsonProperty("params")]
+        public object[] Params { get; set; }
+    }
+
     public partial class OperatorsAvailable
     {
         [JsonProperty("operators")]
-        public Operator[] Operators { get; set; }
+        public OperatorElement[] Operators { get; set; }
     }
 
-    public partial class Operator
+    public partial class OperatorElement
     {
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -132,6 +198,15 @@ namespace QuickType
         public TypeEnum Type { get; set; }
     }
 
+    public partial class RolesChanged
+    {
+        [JsonProperty("roles")]
+        public double[] Roles { get; set; }
+
+        [JsonProperty("username")]
+        public string Username { get; set; }
+    }
+
     public partial class RoomCreated
     {
         [JsonProperty("room")]
@@ -150,16 +225,13 @@ namespace QuickType
         public string Username { get; set; }
     }
 
-    public partial class StateUpdated
+    public partial class Transition
     {
         [JsonProperty("message")]
         public string Message { get; set; }
-
-        [JsonProperty("state")]
-        public Dictionary<string, object> State { get; set; }
     }
 
-    public partial class OperatorParam
+    public partial class Role
     {
         [JsonProperty("max")]
         public double? Max { get; set; }
@@ -169,37 +241,27 @@ namespace QuickType
 
         [JsonProperty("name")]
         public string Name { get; set; }
-
-        [JsonProperty("type")]
-        public TypeEnum Type { get; set; }
     }
 
     /// <summary>
-    /// Primary copy of Soluzion Types; used to generate others for Python, C# etc.
+    /// Events handled and sent by both client and server
     /// </summary>
     public enum SharedEventEnum { Connect, Disconnect };
 
-    public enum ServerErrorEnum { CantJoinRoom, GameAlreadyStarted, GameNotStarted, InvalidOperator, NotInARoom, RoomAlreadyExists };
+    public enum ClientEventEnum { Error, GameEnded, GameStarted, OperatorApplied, OperatorsAvailable, RolesChanged, RoomCreated, RoomJoined, RoomLeft, Transition };
 
-    public enum ServerEventEnum { CreateRoom, JoinRoom, LeaveRoom, OperatorChosen, StartGame };
+    public enum ServerErrorEnum { CantJoinRoom, GameAlreadyStarted, GameNotStarted, InvalidOperator, InvalidRoles, NotInARoom, RoomAlreadyExists };
+
+    /// <summary>
+    /// Events handled by the server (sent by the client)
+    /// </summary>
+    public enum ServerEventEnum { CreateRoom, JoinRoom, LeaveRoom, OperatorChosen, SetName, SetRoles, StartGame };
 
     public enum TypeEnum { Float, Int, Str };
-
-    public enum ClientEventEnum { Error, GameEnded, GameStarted, OperatorsAvailable, RoomCreated, RoomJoined, RoomLeft, StateUpdated };
 
     public class SharedEvent
     {
         public static SharedEventEnum FromJson(string json) => JsonConvert.DeserializeObject<SharedEventEnum>(json, QuickType.Converter.Settings);
-    }
-
-    public class ServerError
-    {
-        public static ServerErrorEnum FromJson(string json) => JsonConvert.DeserializeObject<ServerErrorEnum>(json, QuickType.Converter.Settings);
-    }
-
-    public partial class ServerEvents
-    {
-        public static ServerEvents FromJson(string json) => JsonConvert.DeserializeObject<ServerEvents>(json, QuickType.Converter.Settings);
     }
 
     public class ServerEvent
@@ -207,9 +269,9 @@ namespace QuickType
         public static ServerEventEnum FromJson(string json) => JsonConvert.DeserializeObject<ServerEventEnum>(json, QuickType.Converter.Settings);
     }
 
-    public partial class ClientEvents
+    public partial class ServerEvents
     {
-        public static ClientEvents FromJson(string json) => JsonConvert.DeserializeObject<ClientEvents>(json, QuickType.Converter.Settings);
+        public static ServerEvents FromJson(string json) => JsonConvert.DeserializeObject<ServerEvents>(json, QuickType.Converter.Settings);
     }
 
     public class ClientEvent
@@ -217,20 +279,30 @@ namespace QuickType
         public static ClientEventEnum FromJson(string json) => JsonConvert.DeserializeObject<ClientEventEnum>(json, QuickType.Converter.Settings);
     }
 
-    public partial class OperatorParam
+    public partial class ClientEvents
     {
-        public static OperatorParam FromJson(string json) => JsonConvert.DeserializeObject<OperatorParam>(json, QuickType.Converter.Settings);
+        public static ClientEvents FromJson(string json) => JsonConvert.DeserializeObject<ClientEvents>(json, QuickType.Converter.Settings);
+    }
+
+    public class ServerError
+    {
+        public static ServerErrorEnum FromJson(string json) => JsonConvert.DeserializeObject<ServerErrorEnum>(json, QuickType.Converter.Settings);
+    }
+
+    public partial class Role
+    {
+        public static Role FromJson(string json) => JsonConvert.DeserializeObject<Role>(json, QuickType.Converter.Settings);
     }
 
     public static class Serialize
     {
         public static string ToJson(this SharedEventEnum self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
-        public static string ToJson(this ServerErrorEnum self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
-        public static string ToJson(this ServerEvents self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
         public static string ToJson(this ServerEventEnum self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
-        public static string ToJson(this ClientEvents self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
+        public static string ToJson(this ServerEvents self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
         public static string ToJson(this ClientEventEnum self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
-        public static string ToJson(this OperatorParam self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
+        public static string ToJson(this ClientEvents self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
+        public static string ToJson(this ServerErrorEnum self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
+        public static string ToJson(this Role self) => JsonConvert.SerializeObject(self, QuickType.Converter.Settings);
     }
 
     internal static class Converter
@@ -242,10 +314,10 @@ namespace QuickType
             Converters =
             {
                 SharedEventEnumConverter.Singleton,
-                ServerErrorEnumConverter.Singleton,
                 ServerEventEnumConverter.Singleton,
-                TypeEnumConverter.Singleton,
                 ClientEventEnumConverter.Singleton,
+                ServerErrorEnumConverter.Singleton,
+                TypeEnumConverter.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };
@@ -292,6 +364,153 @@ namespace QuickType
         public static readonly SharedEventEnumConverter Singleton = new SharedEventEnumConverter();
     }
 
+    internal class ServerEventEnumConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(ServerEventEnum) || t == typeof(ServerEventEnum?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+            var value = serializer.Deserialize<string>(reader);
+            switch (value)
+            {
+                case "create_room":
+                    return ServerEventEnum.CreateRoom;
+                case "join_room":
+                    return ServerEventEnum.JoinRoom;
+                case "leave_room":
+                    return ServerEventEnum.LeaveRoom;
+                case "operator_chosen":
+                    return ServerEventEnum.OperatorChosen;
+                case "set_name":
+                    return ServerEventEnum.SetName;
+                case "set_roles":
+                    return ServerEventEnum.SetRoles;
+                case "start_game":
+                    return ServerEventEnum.StartGame;
+            }
+            throw new Exception("Cannot unmarshal type ServerEventEnum");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            var value = (ServerEventEnum)untypedValue;
+            switch (value)
+            {
+                case ServerEventEnum.CreateRoom:
+                    serializer.Serialize(writer, "create_room");
+                    return;
+                case ServerEventEnum.JoinRoom:
+                    serializer.Serialize(writer, "join_room");
+                    return;
+                case ServerEventEnum.LeaveRoom:
+                    serializer.Serialize(writer, "leave_room");
+                    return;
+                case ServerEventEnum.OperatorChosen:
+                    serializer.Serialize(writer, "operator_chosen");
+                    return;
+                case ServerEventEnum.SetName:
+                    serializer.Serialize(writer, "set_name");
+                    return;
+                case ServerEventEnum.SetRoles:
+                    serializer.Serialize(writer, "set_roles");
+                    return;
+                case ServerEventEnum.StartGame:
+                    serializer.Serialize(writer, "start_game");
+                    return;
+            }
+            throw new Exception("Cannot marshal type ServerEventEnum");
+        }
+
+        public static readonly ServerEventEnumConverter Singleton = new ServerEventEnumConverter();
+    }
+
+    internal class ClientEventEnumConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(ClientEventEnum) || t == typeof(ClientEventEnum?);
+
+        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+            var value = serializer.Deserialize<string>(reader);
+            switch (value)
+            {
+                case "error":
+                    return ClientEventEnum.Error;
+                case "game_ended":
+                    return ClientEventEnum.GameEnded;
+                case "game_started":
+                    return ClientEventEnum.GameStarted;
+                case "operator_applied":
+                    return ClientEventEnum.OperatorApplied;
+                case "operators_available":
+                    return ClientEventEnum.OperatorsAvailable;
+                case "roles_changed":
+                    return ClientEventEnum.RolesChanged;
+                case "room_created":
+                    return ClientEventEnum.RoomCreated;
+                case "room_joined":
+                    return ClientEventEnum.RoomJoined;
+                case "room_left":
+                    return ClientEventEnum.RoomLeft;
+                case "transition":
+                    return ClientEventEnum.Transition;
+            }
+            throw new Exception("Cannot unmarshal type ClientEventEnum");
+        }
+
+        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            var value = (ClientEventEnum)untypedValue;
+            switch (value)
+            {
+                case ClientEventEnum.Error:
+                    serializer.Serialize(writer, "error");
+                    return;
+                case ClientEventEnum.GameEnded:
+                    serializer.Serialize(writer, "game_ended");
+                    return;
+                case ClientEventEnum.GameStarted:
+                    serializer.Serialize(writer, "game_started");
+                    return;
+                case ClientEventEnum.OperatorApplied:
+                    serializer.Serialize(writer, "operator_applied");
+                    return;
+                case ClientEventEnum.OperatorsAvailable:
+                    serializer.Serialize(writer, "operators_available");
+                    return;
+                case ClientEventEnum.RolesChanged:
+                    serializer.Serialize(writer, "roles_changed");
+                    return;
+                case ClientEventEnum.RoomCreated:
+                    serializer.Serialize(writer, "room_created");
+                    return;
+                case ClientEventEnum.RoomJoined:
+                    serializer.Serialize(writer, "room_joined");
+                    return;
+                case ClientEventEnum.RoomLeft:
+                    serializer.Serialize(writer, "room_left");
+                    return;
+                case ClientEventEnum.Transition:
+                    serializer.Serialize(writer, "transition");
+                    return;
+            }
+            throw new Exception("Cannot marshal type ClientEventEnum");
+        }
+
+        public static readonly ClientEventEnumConverter Singleton = new ClientEventEnumConverter();
+    }
+
     internal class ServerErrorEnumConverter : JsonConverter
     {
         public override bool CanConvert(Type t) => t == typeof(ServerErrorEnum) || t == typeof(ServerErrorEnum?);
@@ -310,6 +529,8 @@ namespace QuickType
                     return ServerErrorEnum.GameNotStarted;
                 case "InvalidOperator":
                     return ServerErrorEnum.InvalidOperator;
+                case "InvalidRoles":
+                    return ServerErrorEnum.InvalidRoles;
                 case "NotInARoom":
                     return ServerErrorEnum.NotInARoom;
                 case "RoomAlreadyExists":
@@ -340,6 +561,9 @@ namespace QuickType
                 case ServerErrorEnum.InvalidOperator:
                     serializer.Serialize(writer, "InvalidOperator");
                     return;
+                case ServerErrorEnum.InvalidRoles:
+                    serializer.Serialize(writer, "InvalidRoles");
+                    return;
                 case ServerErrorEnum.NotInARoom:
                     serializer.Serialize(writer, "NotInARoom");
                     return;
@@ -351,62 +575,6 @@ namespace QuickType
         }
 
         public static readonly ServerErrorEnumConverter Singleton = new ServerErrorEnumConverter();
-    }
-
-    internal class ServerEventEnumConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(ServerEventEnum) || t == typeof(ServerEventEnum?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            switch (value)
-            {
-                case "create_room":
-                    return ServerEventEnum.CreateRoom;
-                case "join_room":
-                    return ServerEventEnum.JoinRoom;
-                case "leave_room":
-                    return ServerEventEnum.LeaveRoom;
-                case "operator_chosen":
-                    return ServerEventEnum.OperatorChosen;
-                case "start_game":
-                    return ServerEventEnum.StartGame;
-            }
-            throw new Exception("Cannot unmarshal type ServerEventEnum");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (ServerEventEnum)untypedValue;
-            switch (value)
-            {
-                case ServerEventEnum.CreateRoom:
-                    serializer.Serialize(writer, "create_room");
-                    return;
-                case ServerEventEnum.JoinRoom:
-                    serializer.Serialize(writer, "join_room");
-                    return;
-                case ServerEventEnum.LeaveRoom:
-                    serializer.Serialize(writer, "leave_room");
-                    return;
-                case ServerEventEnum.OperatorChosen:
-                    serializer.Serialize(writer, "operator_chosen");
-                    return;
-                case ServerEventEnum.StartGame:
-                    serializer.Serialize(writer, "start_game");
-                    return;
-            }
-            throw new Exception("Cannot marshal type ServerEventEnum");
-        }
-
-        public static readonly ServerEventEnumConverter Singleton = new ServerEventEnumConverter();
     }
 
     internal class TypeEnumConverter : JsonConverter
@@ -453,76 +621,5 @@ namespace QuickType
         }
 
         public static readonly TypeEnumConverter Singleton = new TypeEnumConverter();
-    }
-
-    internal class ClientEventEnumConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(ClientEventEnum) || t == typeof(ClientEventEnum?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            switch (value)
-            {
-                case "error":
-                    return ClientEventEnum.Error;
-                case "game_ended":
-                    return ClientEventEnum.GameEnded;
-                case "game_started":
-                    return ClientEventEnum.GameStarted;
-                case "operators_available":
-                    return ClientEventEnum.OperatorsAvailable;
-                case "room_created":
-                    return ClientEventEnum.RoomCreated;
-                case "room_joined":
-                    return ClientEventEnum.RoomJoined;
-                case "room_left":
-                    return ClientEventEnum.RoomLeft;
-                case "state_updated":
-                    return ClientEventEnum.StateUpdated;
-            }
-            throw new Exception("Cannot unmarshal type ClientEventEnum");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (ClientEventEnum)untypedValue;
-            switch (value)
-            {
-                case ClientEventEnum.Error:
-                    serializer.Serialize(writer, "error");
-                    return;
-                case ClientEventEnum.GameEnded:
-                    serializer.Serialize(writer, "game_ended");
-                    return;
-                case ClientEventEnum.GameStarted:
-                    serializer.Serialize(writer, "game_started");
-                    return;
-                case ClientEventEnum.OperatorsAvailable:
-                    serializer.Serialize(writer, "operators_available");
-                    return;
-                case ClientEventEnum.RoomCreated:
-                    serializer.Serialize(writer, "room_created");
-                    return;
-                case ClientEventEnum.RoomJoined:
-                    serializer.Serialize(writer, "room_joined");
-                    return;
-                case ClientEventEnum.RoomLeft:
-                    serializer.Serialize(writer, "room_left");
-                    return;
-                case ClientEventEnum.StateUpdated:
-                    serializer.Serialize(writer, "state_updated");
-                    return;
-            }
-            throw new Exception("Cannot marshal type ClientEventEnum");
-        }
-
-        public static readonly ClientEventEnumConverter Singleton = new ClientEventEnumConverter();
     }
 }

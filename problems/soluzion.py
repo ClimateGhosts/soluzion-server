@@ -62,7 +62,7 @@ class Basic_Operator:
         self.transf = transf
         self.params = params
 
-    def is_applicable(self, s, role=-1):
+    def is_applicable(self, s, role_number=0):
         return self.precond(s)
 
     def apply(self, s):

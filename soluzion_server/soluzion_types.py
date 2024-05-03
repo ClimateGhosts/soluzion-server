@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, List, Dict, TypeVar, Callable, Type, cast
+from typing import Any, Optional, List, TypeVar, Callable, Type, cast
 
 
 T = TypeVar("T")
@@ -16,11 +16,6 @@ def from_none(x: Any) -> Any:
     return x
 
 
-def from_float(x: Any) -> float:
-    assert isinstance(x, (float, int)) and not isinstance(x, bool)
-    return float(x)
-
-
 def from_union(fs, x):
     for f in fs:
         try:
@@ -30,14 +25,19 @@ def from_union(fs, x):
     assert False
 
 
-def to_float(x: Any) -> float:
-    assert isinstance(x, (int, float))
-    return x
+def from_float(x: Any) -> float:
+    assert isinstance(x, (float, int)) and not isinstance(x, bool)
+    return float(x)
 
 
 def from_list(f: Callable[[Any], T], x: Any) -> List[T]:
     assert isinstance(x, list)
     return [f(y) for y in x]
+
+
+def to_float(x: Any) -> float:
+    assert isinstance(x, (int, float))
+    return x
 
 
 def to_class(c: Type[T], x: Any) -> dict:
@@ -50,13 +50,8 @@ def to_enum(c: Type[EnumT], x: Any) -> EnumT:
     return x.value
 
 
-def from_dict(f: Callable[[Any], T], x: Any) -> Dict[str, T]:
-    assert isinstance(x, dict)
-    return { k: f(v) for (k, v) in x.items() }
-
-
 class SharedEvent(Enum):
-    """Primary copy of Soluzion Types; used to generate others for Python, C# etc."""
+    """Events handled and sent by both client and server"""
 
     CONNECT = "connect"
     DISCONNECT = "disconnect"
@@ -81,28 +76,24 @@ class CreateRoom:
 
 
 class JoinRoom:
-    role: Optional[float]
     room: str
-    username: str
+    username: Optional[str]
 
-    def __init__(self, role: Optional[float], room: str, username: str) -> None:
-        self.role = role
+    def __init__(self, room: str, username: Optional[str]) -> None:
         self.room = room
         self.username = username
 
     @staticmethod
     def from_dict(obj: Any) -> 'JoinRoom':
         assert isinstance(obj, dict)
-        role = from_union([from_none, from_float], obj.get("role"))
         room = from_str(obj.get("room"))
-        username = from_str(obj.get("username"))
-        return JoinRoom(role, room, username)
+        username = from_union([from_none, from_str], obj.get("username"))
+        return JoinRoom(room, username)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["role"] = from_union([from_none, to_float], self.role)
         result["room"] = from_str(self.room)
-        result["username"] = from_str(self.username)
+        result["username"] = from_union([from_none, from_str], self.username)
         return result
 
 
@@ -128,17 +119,55 @@ class OperatorChosen:
         return result
 
 
-class ServerEvents:
-    """Events handled by the server (sent by the client)"""
+class SetName:
+    name: str
 
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'SetName':
+        assert isinstance(obj, dict)
+        name = from_str(obj.get("name"))
+        return SetName(name)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["name"] = from_str(self.name)
+        return result
+
+
+class SetRoles:
+    roles: List[float]
+
+    def __init__(self, roles: List[float]) -> None:
+        self.roles = roles
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'SetRoles':
+        assert isinstance(obj, dict)
+        roles = from_list(from_float, obj.get("roles"))
+        return SetRoles(roles)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["roles"] = from_list(to_float, self.roles)
+        return result
+
+
+class ServerEvents:
     create_room: CreateRoom
     join_room: JoinRoom
     operator_chosen: OperatorChosen
+    set_name: SetName
+    set_roles: SetRoles
 
-    def __init__(self, create_room: CreateRoom, join_room: JoinRoom, operator_chosen: OperatorChosen) -> None:
+    def __init__(self, create_room: CreateRoom, join_room: JoinRoom, operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles) -> None:
         self.create_room = create_room
         self.join_room = join_room
         self.operator_chosen = operator_chosen
+        self.set_name = set_name
+        self.set_roles = set_roles
 
     @staticmethod
     def from_dict(obj: Any) -> 'ServerEvents':
@@ -146,14 +175,31 @@ class ServerEvents:
         create_room = CreateRoom.from_dict(obj.get("create_room"))
         join_room = JoinRoom.from_dict(obj.get("join_room"))
         operator_chosen = OperatorChosen.from_dict(obj.get("operator_chosen"))
-        return ServerEvents(create_room, join_room, operator_chosen)
+        set_name = SetName.from_dict(obj.get("set_name"))
+        set_roles = SetRoles.from_dict(obj.get("set_roles"))
+        return ServerEvents(create_room, join_room, operator_chosen, set_name, set_roles)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["create_room"] = to_class(CreateRoom, self.create_room)
         result["join_room"] = to_class(JoinRoom, self.join_room)
         result["operator_chosen"] = to_class(OperatorChosen, self.operator_chosen)
+        result["set_name"] = to_class(SetName, self.set_name)
+        result["set_roles"] = to_class(SetRoles, self.set_roles)
         return result
+
+
+class ClientEvent(Enum):
+    ERROR = "error"
+    GAME_ENDED = "game_ended"
+    GAME_STARTED = "game_started"
+    OPERATORS_AVAILABLE = "operators_available"
+    OPERATOR_APPLIED = "operator_applied"
+    ROLES_CHANGED = "roles_changed"
+    ROOM_CREATED = "room_created"
+    ROOM_JOINED = "room_joined"
+    ROOM_LEFT = "room_left"
+    TRANSITION = "transition"
 
 
 class ServerError(Enum):
@@ -161,15 +207,20 @@ class ServerError(Enum):
     GAME_ALREADY_STARTED = "GameAlreadyStarted"
     GAME_NOT_STARTED = "GameNotStarted"
     INVALID_OPERATOR = "InvalidOperator"
+    INVALID_ROLES = "InvalidRoles"
     NOT_IN_A_ROOM = "NotInARoom"
     ROOM_ALREADY_EXISTS = "RoomAlreadyExists"
 
 
 class ServerEvent(Enum):
+    """Events handled by the server (sent by the client)"""
+
     CREATE_ROOM = "create_room"
     JOIN_ROOM = "join_room"
     LEAVE_ROOM = "leave_room"
     OPERATOR_CHOSEN = "operator_chosen"
+    SET_NAME = "set_name"
+    SET_ROLES = "set_roles"
     START_GAME = "start_game"
 
 
@@ -196,6 +247,100 @@ class Error:
         result["error"] = to_enum(ServerError, self.error)
         result["event"] = to_enum(ServerEvent, self.event)
         result["message"] = from_union([from_none, from_str], self.message)
+        return result
+
+
+class GameEnded:
+    message: str
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'GameEnded':
+        assert isinstance(obj, dict)
+        message = from_str(obj.get("message"))
+        return GameEnded(message)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["message"] = from_str(self.message)
+        return result
+
+
+class GameStarted:
+    """This is a comment"""
+
+    message: str
+    state: Optional[str]
+
+    def __init__(self, message: str, state: Optional[str]) -> None:
+        self.message = message
+        self.state = state
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'GameStarted':
+        assert isinstance(obj, dict)
+        message = from_str(obj.get("message"))
+        state = from_union([from_none, from_str], obj.get("state"))
+        return GameStarted(message, state)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["message"] = from_str(self.message)
+        result["state"] = from_union([from_none, from_str], self.state)
+        return result
+
+
+class OperatorAppliedOperator:
+    name: str
+    op_no: float
+    params: Optional[List[Any]]
+
+    def __init__(self, name: str, op_no: float, params: Optional[List[Any]]) -> None:
+        self.name = name
+        self.op_no = op_no
+        self.params = params
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'OperatorAppliedOperator':
+        assert isinstance(obj, dict)
+        name = from_str(obj.get("name"))
+        op_no = from_float(obj.get("op_no"))
+        params = from_union([lambda x: from_list(lambda x: x, x), from_none], obj.get("params"))
+        return OperatorAppliedOperator(name, op_no, params)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["name"] = from_str(self.name)
+        result["op_no"] = to_float(self.op_no)
+        result["params"] = from_union([lambda x: from_list(lambda x: x, x), from_none], self.params)
+        return result
+
+
+class OperatorApplied:
+    message: str
+    operator: OperatorAppliedOperator
+    state: Optional[str]
+
+    def __init__(self, message: str, operator: OperatorAppliedOperator, state: Optional[str]) -> None:
+        self.message = message
+        self.operator = operator
+        self.state = state
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'OperatorApplied':
+        assert isinstance(obj, dict)
+        message = from_str(obj.get("message"))
+        operator = OperatorAppliedOperator.from_dict(obj.get("operator"))
+        state = from_union([from_none, from_str], obj.get("state"))
+        return OperatorApplied(message, operator, state)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["message"] = from_str(self.message)
+        result["operator"] = to_class(OperatorAppliedOperator, self.operator)
+        result["state"] = from_union([from_none, from_str], self.state)
         return result
 
 
@@ -235,7 +380,7 @@ class Param:
         return result
 
 
-class Operator:
+class OperatorElement:
     name: str
     op_no: float
     params: Optional[List[Param]]
@@ -246,12 +391,12 @@ class Operator:
         self.params = params
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Operator':
+    def from_dict(obj: Any) -> 'OperatorElement':
         assert isinstance(obj, dict)
         name = from_str(obj.get("name"))
         op_no = from_float(obj.get("op_no"))
         params = from_union([lambda x: from_list(Param.from_dict, x), from_none], obj.get("params"))
-        return Operator(name, op_no, params)
+        return OperatorElement(name, op_no, params)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -262,20 +407,42 @@ class Operator:
 
 
 class OperatorsAvailable:
-    operators: List[Operator]
+    operators: List[OperatorElement]
 
-    def __init__(self, operators: List[Operator]) -> None:
+    def __init__(self, operators: List[OperatorElement]) -> None:
         self.operators = operators
 
     @staticmethod
     def from_dict(obj: Any) -> 'OperatorsAvailable':
         assert isinstance(obj, dict)
-        operators = from_list(Operator.from_dict, obj.get("operators"))
+        operators = from_list(OperatorElement.from_dict, obj.get("operators"))
         return OperatorsAvailable(operators)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["operators"] = from_list(lambda x: to_class(Operator, x), self.operators)
+        result["operators"] = from_list(lambda x: to_class(OperatorElement, x), self.operators)
+        return result
+
+
+class RolesChanged:
+    roles: List[float]
+    username: str
+
+    def __init__(self, roles: List[float], username: str) -> None:
+        self.roles = roles
+        self.username = username
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'RolesChanged':
+        assert isinstance(obj, dict)
+        roles = from_list(from_float, obj.get("roles"))
+        username = from_str(obj.get("username"))
+        return RolesChanged(roles, username)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["roles"] = from_list(to_float, self.roles)
+        result["username"] = from_str(self.username)
         return result
 
 
@@ -333,106 +500,103 @@ class RoomLeft:
         return result
 
 
-class StateUpdated:
+class Transition:
     message: str
-    state: Optional[Dict[str, Any]]
 
-    def __init__(self, message: str, state: Optional[Dict[str, Any]]) -> None:
+    def __init__(self, message: str) -> None:
         self.message = message
-        self.state = state
 
     @staticmethod
-    def from_dict(obj: Any) -> 'StateUpdated':
+    def from_dict(obj: Any) -> 'Transition':
         assert isinstance(obj, dict)
         message = from_str(obj.get("message"))
-        state = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("state"))
-        return StateUpdated(message, state)
+        return Transition(message)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["message"] = from_str(self.message)
-        result["state"] = from_union([lambda x: from_dict(lambda x: x, x), from_none], self.state)
         return result
 
 
 class ClientEvents:
-    """Events handled by the client (sent by the server)"""
-
     error: Error
+    game_ended: GameEnded
+    game_started: GameStarted
+    """This is a comment"""
+
+    operator_applied: OperatorApplied
     operators_available: OperatorsAvailable
+    roles_changed: RolesChanged
     room_created: RoomCreated
     room_joined: RoomJoined
     room_left: RoomLeft
-    state_updated: StateUpdated
+    transition: Transition
 
-    def __init__(self, error: Error, operators_available: OperatorsAvailable, room_created: RoomCreated, room_joined: RoomJoined, room_left: RoomLeft, state_updated: StateUpdated) -> None:
+    def __init__(self, error: Error, game_ended: GameEnded, game_started: GameStarted, operator_applied: OperatorApplied, operators_available: OperatorsAvailable, roles_changed: RolesChanged, room_created: RoomCreated, room_joined: RoomJoined, room_left: RoomLeft, transition: Transition) -> None:
         self.error = error
+        self.game_ended = game_ended
+        self.game_started = game_started
+        self.operator_applied = operator_applied
         self.operators_available = operators_available
+        self.roles_changed = roles_changed
         self.room_created = room_created
         self.room_joined = room_joined
         self.room_left = room_left
-        self.state_updated = state_updated
+        self.transition = transition
 
     @staticmethod
     def from_dict(obj: Any) -> 'ClientEvents':
         assert isinstance(obj, dict)
         error = Error.from_dict(obj.get("error"))
+        game_ended = GameEnded.from_dict(obj.get("game_ended"))
+        game_started = GameStarted.from_dict(obj.get("game_started"))
+        operator_applied = OperatorApplied.from_dict(obj.get("operator_applied"))
         operators_available = OperatorsAvailable.from_dict(obj.get("operators_available"))
+        roles_changed = RolesChanged.from_dict(obj.get("roles_changed"))
         room_created = RoomCreated.from_dict(obj.get("room_created"))
         room_joined = RoomJoined.from_dict(obj.get("room_joined"))
         room_left = RoomLeft.from_dict(obj.get("room_left"))
-        state_updated = StateUpdated.from_dict(obj.get("state_updated"))
-        return ClientEvents(error, operators_available, room_created, room_joined, room_left, state_updated)
+        transition = Transition.from_dict(obj.get("transition"))
+        return ClientEvents(error, game_ended, game_started, operator_applied, operators_available, roles_changed, room_created, room_joined, room_left, transition)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["error"] = to_class(Error, self.error)
+        result["game_ended"] = to_class(GameEnded, self.game_ended)
+        result["game_started"] = to_class(GameStarted, self.game_started)
+        result["operator_applied"] = to_class(OperatorApplied, self.operator_applied)
         result["operators_available"] = to_class(OperatorsAvailable, self.operators_available)
+        result["roles_changed"] = to_class(RolesChanged, self.roles_changed)
         result["room_created"] = to_class(RoomCreated, self.room_created)
         result["room_joined"] = to_class(RoomJoined, self.room_joined)
         result["room_left"] = to_class(RoomLeft, self.room_left)
-        result["state_updated"] = to_class(StateUpdated, self.state_updated)
+        result["transition"] = to_class(Transition, self.transition)
         return result
 
 
-class ClientEvent(Enum):
-    ERROR = "error"
-    GAME_ENDED = "game_ended"
-    GAME_STARTED = "game_started"
-    OPERATORS_AVAILABLE = "operators_available"
-    ROOM_CREATED = "room_created"
-    ROOM_JOINED = "room_joined"
-    ROOM_LEFT = "room_left"
-    STATE_UPDATED = "state_updated"
-
-
-class OperatorParam:
+class Role:
     max: Optional[float]
     min: Optional[float]
     name: str
-    type: TypeEnum
 
-    def __init__(self, max: Optional[float], min: Optional[float], name: str, type: TypeEnum) -> None:
+    def __init__(self, max: Optional[float], min: Optional[float], name: str) -> None:
         self.max = max
         self.min = min
         self.name = name
-        self.type = type
 
     @staticmethod
-    def from_dict(obj: Any) -> 'OperatorParam':
+    def from_dict(obj: Any) -> 'Role':
         assert isinstance(obj, dict)
         max = from_union([from_none, from_float], obj.get("max"))
         min = from_union([from_none, from_float], obj.get("min"))
         name = from_str(obj.get("name"))
-        type = TypeEnum(obj.get("type"))
-        return OperatorParam(max, min, name, type)
+        return Role(max, min, name)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["max"] = from_union([from_none, to_float], self.max)
         result["min"] = from_union([from_none, to_float], self.min)
         result["name"] = from_str(self.name)
-        result["type"] = to_enum(TypeEnum, self.type)
         return result
 
 
@@ -444,12 +608,12 @@ def shared_event_to_dict(x: SharedEvent) -> Any:
     return to_enum(SharedEvent, x)
 
 
-def server_error_from_dict(s: Any) -> ServerError:
-    return ServerError(s)
+def server_event_from_dict(s: Any) -> ServerEvent:
+    return ServerEvent(s)
 
 
-def server_error_to_dict(x: ServerError) -> Any:
-    return to_enum(ServerError, x)
+def server_event_to_dict(x: ServerEvent) -> Any:
+    return to_enum(ServerEvent, x)
 
 
 def server_events_from_dict(s: Any) -> ServerEvents:
@@ -460,12 +624,12 @@ def server_events_to_dict(x: ServerEvents) -> Any:
     return to_class(ServerEvents, x)
 
 
-def server_event_from_dict(s: Any) -> ServerEvent:
-    return ServerEvent(s)
+def client_event_from_dict(s: Any) -> ClientEvent:
+    return ClientEvent(s)
 
 
-def server_event_to_dict(x: ServerEvent) -> Any:
-    return to_enum(ServerEvent, x)
+def client_event_to_dict(x: ClientEvent) -> Any:
+    return to_enum(ClientEvent, x)
 
 
 def client_events_from_dict(s: Any) -> ClientEvents:
@@ -476,17 +640,17 @@ def client_events_to_dict(x: ClientEvents) -> Any:
     return to_class(ClientEvents, x)
 
 
-def client_event_from_dict(s: Any) -> ClientEvent:
-    return ClientEvent(s)
+def server_error_from_dict(s: Any) -> ServerError:
+    return ServerError(s)
 
 
-def client_event_to_dict(x: ClientEvent) -> Any:
-    return to_enum(ClientEvent, x)
+def server_error_to_dict(x: ServerError) -> Any:
+    return to_enum(ServerError, x)
 
 
-def operator_param_from_dict(s: Any) -> OperatorParam:
-    return OperatorParam.from_dict(s)
+def role_from_dict(s: Any) -> Role:
+    return Role.from_dict(s)
 
 
-def operator_param_to_dict(x: OperatorParam) -> Any:
-    return to_class(OperatorParam, x)
+def role_to_dict(x: Role) -> Any:
+    return to_class(Role, x)

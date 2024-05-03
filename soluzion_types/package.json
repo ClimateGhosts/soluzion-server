@@ -11,10 +11,10 @@
   },
   "scripts": {
     "dev": "nodemon",
-    "generate": "npm run generateServer && npm run generateClient && npm run generateOutput",
+    "generate": "npm run generateServer && npm run generateOutput",
     "generateServer": "quicktype soluzion-types.ts -o ../soluzion_server/soluzion_types.py",
-    "generateClient": "quicktype soluzion-types.ts -o ../soluzion_test_client/soluzion_types.py",
-    "generateOutput": "npm run generateC#",
-    "generateC#": "quicktype soluzion-types.ts -o output/SoluzionTypes.cs"
+    "generateOutput": "npm run generatePyhon && npm run generateC#",
+    "generateC#": "quicktype soluzion-types.ts -o output/SoluzionTypes.cs",
+    "generatePyhon": "quicktype soluzion-types.ts -o output/SoluzionTypes.py"
   }
 }

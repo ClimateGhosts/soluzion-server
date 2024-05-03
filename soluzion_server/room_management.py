@@ -13,7 +13,7 @@ def configure_room_handlers(socketio: SocketIO):
         When a client establishes the socket connection
         """
         print("Client connected:", request.sid)
-        connected_players[request.sid] = PlayerSession(request.sid, None, None, None)
+        connected_players[request.sid] = PlayerSession(request.sid, None, None, set())
 
     @socketio.on(SharedEvent.DISCONNECT.value)
     def handle_disconnect():
@@ -34,13 +34,21 @@ def configure_room_handlers(socketio: SocketIO):
         if event.room in room_sessions:
             emit(
                 ClientEvent.ERROR.value,
-                Error(ServerError.ROOM_ALREADY_EXISTS, ServerEvent.CREATE_ROOM, None).to_dict(),
+                Error(
+                    ServerError.ROOM_ALREADY_EXISTS, ServerEvent.CREATE_ROOM, None
+                ).to_dict(),
             )
             return
 
-        room_sessions[event.room] = RoomSession(event.room, request.sid, [request.sid], None)
+        room_sessions[event.room] = RoomSession(
+            event.room, request.sid, [request.sid], None
+        )
 
-        emit(ClientEvent.ROOM_CREATED.value, RoomCreated(event.room).to_dict(), broadcast=True)
+        emit(
+            ClientEvent.ROOM_CREATED.value,
+            RoomCreated(event.room).to_dict(),
+            broadcast=True,
+        )
 
     @socketio.on(ServerEvent.JOIN_ROOM.value)
     def on_join_room(data):
@@ -49,7 +57,11 @@ def configure_room_handlers(socketio: SocketIO):
         if event.room not in room_sessions:
             emit(
                 ClientEvent.ERROR.value,
-                Error(ServerError.CANT_JOIN_ROOM, ServerEvent.JOIN_ROOM, "Room Does Not Exist").to_dict(),
+                Error(
+                    ServerError.CANT_JOIN_ROOM,
+                    ServerEvent.JOIN_ROOM,
+                    "Room Does Not Exist",
+                ).to_dict(),
             )
             return
 
@@ -58,7 +70,11 @@ def configure_room_handlers(socketio: SocketIO):
         if player.room is not None:
             emit(
                 ClientEvent.ERROR.value,
-                Error(ServerError.CANT_JOIN_ROOM, ServerEvent.JOIN_ROOM, "Already in another Room").to_dict(),
+                Error(
+                    ServerError.CANT_JOIN_ROOM,
+                    ServerEvent.JOIN_ROOM,
+                    "Already in another Room",
+                ).to_dict(),
             )
             return
 
@@ -66,11 +82,14 @@ def configure_room_handlers(socketio: SocketIO):
 
         player.room = room.id
         player.name = event.username
-        player.role = None if event.role is None else int(event.role)
 
         join_room(room.id)
 
-        emit(ClientEvent.ROOM_JOINED.value, RoomJoined(event.username).to_dict(), to=room.id)
+        emit(
+            ClientEvent.ROOM_JOINED.value,
+            RoomJoined(event.username).to_dict(),
+            to=room.id,
+        )
 
     @socketio.on(ServerEvent.LEAVE_ROOM.value)
     def on_leave_room(data):
@@ -80,7 +99,11 @@ def configure_room_handlers(socketio: SocketIO):
         if room is None or player.room is None:
             emit(
                 ClientEvent.ERROR.value,
-                Error(ServerError.NOT_IN_A_ROOM, ServerEvent.LEAVE_ROOM, "You are not in a room").to_dict(),
+                Error(
+                    ServerError.NOT_IN_A_ROOM,
+                    ServerEvent.LEAVE_ROOM,
+                    "You are not in a room",
+                ).to_dict(),
             )
             return
 
@@ -91,4 +114,38 @@ def configure_room_handlers(socketio: SocketIO):
 
         leave_room(room.id)
 
-        emit(ClientEvent.ROOM_LEFT.value, RoomLeft(username).to_dict(), RoomLeft)
+        emit(ClientEvent.ROOM_LEFT.value, RoomLeft(username).to_dict(), to=room.id)
+
+    @socketio.on(ServerEvent.SET_NAME.value)
+    def on_set_name(data):
+        event = SetName.from_dict(data)
+        player: PlayerSession = current_player(request.sid)
+        player.name = event.name
+
+        # TODO name updated event
+
+    @socketio.on(ServerEvent.SET_ROLES.value)
+    def on_add_role(data):
+        event = SetRoles.from_dict(data)
+        room = current_room(request.sid)
+        player = current_player(request.sid)
+
+        if room is None or player.room is None:
+            emit(
+                ClientEvent.ERROR.value,
+                Error(
+                    ServerError.NOT_IN_A_ROOM,
+                    ServerEvent.SET_ROLES,
+                    "You are not in a room",
+                ).to_dict(),
+            )
+            return
+
+        player.roles.clear()
+        player.roles.update(map(int, event.roles))
+
+        emit(
+            ClientEvent.ROLES_CHANGED.value,
+            RolesChanged(list(player.roles), player.name).to_dict(),
+            to=room.id,
+        )

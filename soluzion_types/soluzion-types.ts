@@ -17,8 +17,13 @@ type ServerEvents = {
   };
   join_room: {
     room: string;
-    username: string;
-    role: number | null; // TODO separate role choice
+    username: string | null;
+  };
+  set_name: {
+    name: string;
+  };
+  set_roles: {
+    roles: number[];
   };
   leave_room: never;
   start_game: never;
@@ -42,18 +47,45 @@ type ClientEvents = {
   room_left: {
     username: string;
   };
-  game_started: never;
-  game_ended: never;
-  state_updated: {
-    state: object | null;
+  roles_changed: {
+    username: string;
+    roles: number[];
+  };
+  /**
+   * This is a comment
+   */
+  game_started: {
+    state: string | null; // JSON representation of state
+    message: string; // state's __str__
+  };
+  game_ended: {
     message: string;
+  };
+  operator_applied: {
+    state: string | null; // JSON representation of state
+    message: string; // state's __str__
+    operator: {
+      name: string;
+      op_no: number;
+      params: any[] | null;
+    };
   };
   operators_available: {
     operators: {
       name: string;
       op_no: number;
-      params: OperatorParam[] | null;
+      params:
+        | {
+            name: string;
+            type: "int" | "float" | "str";
+            min: number | null;
+            max: number | null;
+          }[]
+        | null;
     }[];
+  };
+  transition: {
+    message: string;
   };
   error: {
     event: ServerEvent;
@@ -62,17 +94,17 @@ type ClientEvents = {
   };
 };
 
-type OperatorParam = {
-  name: string;
-  type: "int" | "float" | "str";
-  min: number | null;
-  max: number | null;
-};
-
 type ServerError =
   | "RoomAlreadyExists"
   | "NotInARoom"
   | "CantJoinRoom"
   | "GameAlreadyStarted"
   | "GameNotStarted"
-  | "InvalidOperator";
+  | "InvalidOperator"
+  | "InvalidRoles";
+
+type Role = {
+  name: string;
+  min: number | null;
+  max: number | null;
+};

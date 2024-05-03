@@ -7,19 +7,26 @@ from soluzion_server.soluzion_types import *
 sio = socketio.Client()
 
 
-@sio.event
+@sio.on(SharedEvent.CONNECT.value)
 def connect():
     print("Connected to the server.")
 
 
-@sio.event
+@sio.on(SharedEvent.DISCONNECT.value)
 def disconnect():
     print("Disconnected from the server.")
 
 
-@sio.on(ClientEvent.STATE_UPDATED.value)
+@sio.on(ClientEvent.OPERATOR_APPLIED.value)
 def state_updated(data):
-    event = StateUpdated.from_dict(data)
+    event = OperatorApplied.from_dict(data)
+
+    print(event.message)
+
+
+@sio.on(ClientEvent.GAME_STARTED.value)
+def state_updated(data):
+    event = GameStarted.from_dict(data)
 
     print(event.message)
 
@@ -33,6 +40,22 @@ def state_updated(data):
             print(f"({int(operator.op_no)}) {operator.name}")
     else:
         print("Waiting for other players to choose operators")
+
+
+@sio.on(ClientEvent.TRANSITION.value)
+def transition(data):
+    event = Transition.from_dict(data)
+    text = event.message
+
+    lines = text.split("\n")
+
+    length = max(len(line) for line in lines)
+
+    frame_horiz = "+-" + length * "-" + "-+"
+    print(frame_horiz)
+    for line in lines:
+        print(line)
+    print(frame_horiz)
 
 
 @sio.on("*")
@@ -59,8 +82,10 @@ def main():
                 # username = input("Enter username to use: ")
                 sio.emit(
                     ServerEvent.JOIN_ROOM.value,
-                    JoinRoom(None, "room", "user").to_dict(),
+                    JoinRoom("room", "room").to_dict(),
                 )
+            elif cmd == "roles":
+                sio.emit(ServerEvent.SET_ROLES.value, SetRoles([0, 1, 2, 3]).to_dict())
             elif cmd == "start":
                 sio.emit(ServerEvent.START_GAME.value, {})
             else:
