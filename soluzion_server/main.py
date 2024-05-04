@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("problem_path", type=str, help="Path to the Soluzion problem file")
 parser.add_argument("-p", "--port", type=int, default=5000, help="port to listen on")
+parser.add_argument("-d", "--debug", action="store_true", help="enable debug mode")
 args = parser.parse_args()
 
 # Load the passed in Soluzion problem
@@ -26,7 +27,7 @@ from soluzion_server.game_management import configure_game_handlers
 # Configure the flask socketio server
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
-socketio = SocketIO(app)
+socketio = SocketIO(app, logger=args.debug)
 
 # Add the handlers for processing player/room joining
 configure_room_handlers(socketio)
@@ -36,10 +37,13 @@ configure_game_handlers(socketio)
 
 
 def main():
-    """
-    Start the Soluzion Server
-    """
-    socketio.run(app, port=args.port, debug=True, allow_unsafe_werkzeug=True)
+    """Start the Soluzion Server"""
+    socketio.run(
+        app,
+        port=args.port,
+        debug=args.debug,
+        allow_unsafe_werkzeug=True,
+    )
 
 
 if __name__ == "__main__":

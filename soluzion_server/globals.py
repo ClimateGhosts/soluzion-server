@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import enum
-import inspect
 from dataclasses import dataclass
 from typing import Optional
 
-import soluzion_server.soluzion_types
 from soluzion_server.soluzion_expanded import Problem, ExpandedState
 
 PROBLEM: Problem | None = None
@@ -16,6 +13,8 @@ PROBLEM: Problem | None = None
 
 @dataclass
 class PlayerSession:
+    """Current Player Connection"""
+
     sid: str
     name: Optional[str]
     room: Optional[str]
@@ -52,39 +51,17 @@ room_sessions: dict[str, RoomSession] = {}
 
 
 def current_player(sid: str) -> PlayerSession | None:
-    if sid in connected_players:
-        return connected_players[sid]
-    return None
+    return connected_players.get(sid)
 
 
 def current_room(sid: str) -> RoomSession | None:
     player = current_player(sid)
-    if player is None or player.room not in room_sessions:
-        return None
-    return room_sessions[player.room]
+    return None if player is None else room_sessions.get(player.room)
 
 
 def current_game(sid: str) -> GameSession | None:
     room = current_room(sid)
-    if room is None:
-        return None
+    return None if room is None else room.game
 
-    return room.game
-
-
-# end region
-
-
-# region Misc
-
-# Default Python enum stringify is not helpful for this project, would prefer it to just be the value
-
-for name, obj in inspect.getmembers(soluzion_server.soluzion_types):
-    if inspect.isclass(obj) and issubclass(obj, enum.Enum):
-
-        def new_str(self):
-            return str(self.value)
-
-        obj.__str__ = new_str
 
 # end region

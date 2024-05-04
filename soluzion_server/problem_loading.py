@@ -8,7 +8,7 @@ import soluzion_server.globals as server_globals
 def load_problem(problem_path: str):
     """
     Loads the Soluzion problem passed in the cli args
-    :return:
+    :return: the Soluzion problem module
     """
     if not problem_path.endswith(".py"):
         problem_path += ".py"
@@ -24,16 +24,18 @@ def load_problem(problem_path: str):
     if dir_name not in sys.path:
         sys.path.insert(0, dir_name)
 
-    server_globals.PROBLEM = load_module(problem_path)
+    problem = server_globals.PROBLEM = load_module(problem_path)
 
     print(f"Successfully loaded Soluzion Problem {problem_path}")
+
+    return problem
 
 
 def load_module(path: str):
     """
     Loads a python module from a file, adjusting the working directory as needed
-    :param path:
-    :return:
+    :param path: path to python file
+    :return: the loaded module
     """
 
     original_cwd = os.getcwd()

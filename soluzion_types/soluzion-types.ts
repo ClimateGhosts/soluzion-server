@@ -40,11 +40,11 @@ type ServerEvents = {
   /**
    * Request for the sender to leave their current room
    */
-  leave_room: never;
+  leave_room: {};
   /**
    * Request to start the game for the sender's current room
    */
-  start_game: never;
+  start_game: {};
   /**
    * Request for a specific operator to be replied within the sender's game session
    */

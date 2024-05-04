@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Collection
 
 from flask import request
 from flask_socketio import emit, SocketIO
@@ -62,7 +62,8 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
 
         # TODO end game session
 
-        return
+    else:
+        send_operators_available(game)
 
 
 def handle_transitions(
@@ -116,7 +117,7 @@ def validate_roles(room: RoomSession):
 
 
 def is_operator_applicable(
-    op: ExpandedOperator, state: ExpandedState, roles: list[int] or None
+    op: ExpandedOperator, state: ExpandedState, roles: Collection[int] | None
 ):
     """
     Check if operator is applicable, working whether roles are defined or not
@@ -132,12 +133,12 @@ def is_operator_applicable(
 
 
 def get_applicable_operators(
-    state: ExpandedState, role: int | None
+    state: ExpandedState, roles: Collection[int] | None
 ) -> list[ExpandedOperator]:
     """
     Gets all applicable operators, possibly only for a specific role
     """
-    return [op for op in PROBLEM.OPERATORS if is_operator_applicable(op, state, role)]
+    return [op for op in PROBLEM.OPERATORS if is_operator_applicable(op, state, roles)]
 
 
 def operator_name(operator: ExpandedOperator, state: ExpandedState):
@@ -158,8 +159,8 @@ def send_operators_available(game: GameSession):
     this may send empty arrays if it's not a player's turn
     """
     state = game.current_state
-    for sid, role in game.players.items():
-        operators = get_applicable_operators(state, role)
+    for sid, roles in game.players.items():
+        operators = get_applicable_operators(state, roles)
         emit(
             ClientEvent.OPERATORS_AVAILABLE.value,
             OperatorsAvailable(

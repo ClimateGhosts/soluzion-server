@@ -1,27 +1,58 @@
 import argparse
-import json
 
 import socketio
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
 
 from soluzion_server.soluzion_types import *
+from soluzion_test_client.parser import create_parser
 
-# Setup CLI args
+# region Setup CLI args
 parser = argparse.ArgumentParser(
     prog="soluzion_client",
-    description="",
+    description="Test client for sending events to Soluzion server and playing problems text based",
     epilog="",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument(
     "host", type=str, default="localhost", help="host to connect to", nargs="?"
 )
+parser.add_argument("-p", "--port", type=int, default=5000, help="port to connect to")
 parser.add_argument(
-    "port", type=int, default=5000, help="port to connect to", nargs="?"
+    "--no-connect",
+    dest="noConnect",
+    action="store_true",
+    default=False,
+    help="don't automatically connect SocketIO",
+)
+parser.add_argument(
+    "--quickjoin",
+    action="store_true",
+    help="Quickly create and join a game",
+)
+parser.add_argument(
+    "-r", "--room", type=str, default="room", help="room name to use for --quickjoin"
+)
+parser.add_argument(
+    "-u",
+    "--username",
+    type=str,
+    default="client",
+    help="username to use for --quickjoin",
+)
+parser.add_argument(
+    "--roles",
+    type=int,
+    nargs="*",
+    help="roles to use for --quickjoin",
 )
 args = parser.parse_args()
-
+# endregion
 
 sio = socketio.Client()
+
+
+# region Event Handlers
 
 
 @sio.on(SharedEvent.CONNECT.value)
@@ -75,9 +106,7 @@ def transition(data):
     print(frame_horiz)
 
 
-@sio.on("*")
-def any_event(event, data):
-    print(f"\n{event} {json.dumps(data or {})}")
+# endregion
 
 
 def main():
@@ -86,37 +115,84 @@ def main():
         port: int = args.port
         if not host.startswith("http"):
             host = "http://" + host
-        sio.connect(f"{host}:{port}")
+        url = f"{host}:{port}"
 
-        print(
-            "SocketIO Client is running. Commands are 'exit', 'create', 'join', 'roles', 'start'"
-        )
+        event_parser, subparsers = create_parser(ServerEvents)
+
+        if args.noConnect:
+            subparsers.add_parser(
+                "connect",
+                help="Connect the SocketIO client to the server",
+            )
+        else:
+            print(f"Connecting to {url} ...")
+            sio.connect(url)
+
+        get_input = lambda: input("")
+
+        try:
+            session = PromptSession(history=InMemoryHistory())
+            get_input = lambda: session.prompt("> ")
+        except:
+            pass
+
+        def print_help():
+            event_parser.print_help()
+            print(
+                "    [operator_number]   Alias for operator_chosen --op-no [operator_number]"
+            )
+
+        print_help()
+
+        if args.quickjoin:
+            sio.emit(ServerEvent.CREATE_ROOM.value, CreateRoom(args.room).to_dict())
+            sio.emit(
+                ServerEvent.JOIN_ROOM.value,
+                JoinRoom(args.room, args.username).to_dict(),
+            )
+            if args.roles is not None:
+                sio.emit(ServerEvent.SET_ROLES.value, SetRoles(args.roles).to_dict())
+            sio.emit(ServerEvent.START_GAME.value, {})
 
         while True:
-            cmd = input("").strip().lower()
-            if cmd == "exit":
-                break
-            elif cmd == "create":
-                # room_name = input("Enter room name to create: ")
-                sio.emit(ServerEvent.CREATE_ROOM.value, CreateRoom("room").to_dict())
-            elif cmd == "join":
-                # room_name = input("Enter room name to join: ")
-                # username = input("Enter username to use: ")
-                sio.emit(
-                    ServerEvent.JOIN_ROOM.value,
-                    JoinRoom("room", "room").to_dict(),
-                )
-            elif cmd == "roles":
-                sio.emit(ServerEvent.SET_ROLES.value, SetRoles([0, 1, 2, 3]).to_dict())
-            elif cmd == "start":
-                sio.emit(ServerEvent.START_GAME.value, {})
-            else:
-                operator = int(cmd)
-                sio.emit(
-                    ServerEvent.OPERATOR_CHOSEN.value,
-                    OperatorChosen(operator, None).to_dict(),
-                )
+            cmd = get_input().strip().split(" ")
 
+            if len(cmd) == 0:
+                continue
+
+            if cmd[0].isdigit():
+                cmd = ["operator_chosen", "--op_no"] + cmd
+
+            try:
+                params = event_parser.parse_args(cmd)
+                payload: dict[str, any] = vars(params)
+                event = payload.pop("command")
+
+                if event == "exit":
+                    break
+
+                if event == "help":
+                    print_help()
+                    continue
+
+                if event == "connect":
+                    print(f"Connecting to {url} ...")
+                    sio.connect(url)
+                    continue
+
+                response = sio.emit(event, payload)
+
+                if response is not None:
+                    print(response)
+
+            except Exception as e:
+                if str(e) != "help":
+                    print(e)
+
+    except KeyboardInterrupt:
+        return
+    except EOFError:
+        return
     except Exception as e:
         print(f"Error occurred: {e}")
     finally:

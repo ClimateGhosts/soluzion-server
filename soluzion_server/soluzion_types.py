@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, List, TypeVar, Callable, Type, cast
+from typing import Any, Optional, List, Dict, TypeVar, Callable, Type, cast
 
 
 T = TypeVar("T")
@@ -38,6 +38,11 @@ def from_list(f: Callable[[Any], T], x: Any) -> List[T]:
 def to_float(x: Any) -> float:
     assert isinstance(x, (int, float))
     return x
+
+
+def from_dict(f: Callable[[Any], T], x: Any) -> Dict[str, T]:
+    assert isinstance(x, dict)
+    return { k: f(v) for (k, v) in x.items() }
 
 
 def to_class(c: Type[T], x: Any) -> dict:
@@ -172,6 +177,9 @@ class ServerEvents:
     join_room: JoinRoom
     """Request for the sender to join an existing room, optionally setting a username"""
 
+    leave_room: Dict[str, Any]
+    """Request for the sender to leave their current room"""
+
     operator_chosen: OperatorChosen
     """Request for a specific operator to be replied within the sender's game session"""
 
@@ -181,30 +189,39 @@ class ServerEvents:
     set_roles: SetRoles
     """Request to set the sender's roles"""
 
-    def __init__(self, create_room: CreateRoom, join_room: JoinRoom, operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles) -> None:
+    start_game: Dict[str, Any]
+    """Request to start the game for the sender's current room"""
+
+    def __init__(self, create_room: CreateRoom, join_room: JoinRoom, leave_room: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: Dict[str, Any]) -> None:
         self.create_room = create_room
         self.join_room = join_room
+        self.leave_room = leave_room
         self.operator_chosen = operator_chosen
         self.set_name = set_name
         self.set_roles = set_roles
+        self.start_game = start_game
 
     @staticmethod
     def from_dict(obj: Any) -> 'ServerEvents':
         assert isinstance(obj, dict)
         create_room = CreateRoom.from_dict(obj.get("create_room"))
         join_room = JoinRoom.from_dict(obj.get("join_room"))
+        leave_room = from_dict(lambda x: x, obj.get("leave_room"))
         operator_chosen = OperatorChosen.from_dict(obj.get("operator_chosen"))
         set_name = SetName.from_dict(obj.get("set_name"))
         set_roles = SetRoles.from_dict(obj.get("set_roles"))
-        return ServerEvents(create_room, join_room, operator_chosen, set_name, set_roles)
+        start_game = from_dict(lambda x: x, obj.get("start_game"))
+        return ServerEvents(create_room, join_room, leave_room, operator_chosen, set_name, set_roles, start_game)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["create_room"] = to_class(CreateRoom, self.create_room)
         result["join_room"] = to_class(JoinRoom, self.join_room)
+        result["leave_room"] = from_dict(lambda x: x, self.leave_room)
         result["operator_chosen"] = to_class(OperatorChosen, self.operator_chosen)
         result["set_name"] = to_class(SetName, self.set_name)
         result["set_roles"] = to_class(SetRoles, self.set_roles)
+        result["start_game"] = from_dict(lambda x: x, self.start_game)
         return result
 
 
