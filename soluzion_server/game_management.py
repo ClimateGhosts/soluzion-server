@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional
+
 from flask import request
 from flask_socketio import emit, SocketIO
 
@@ -9,17 +13,17 @@ from soluzion_server.soluzion_types import OperatorElement
 
 def serialize_state(state: ExpandedState) -> str | None:
     """
-    Gets a serialized representation of the state, if to_json is implemented
-    :return: json strong, or None
+    Gets a serialized representation of the state, if .serialize is implemented
+    :return: serialized string, or None
     """
 
     # noinspection PyArgumentList
-    if hasattr(state, "to_json") and callable(state.to_json):
-        return state.to_json()
+    if hasattr(state, "serialize") and callable(state.serialize):
+        return state.serialize()
     return None
 
 
-def apply_operator(game: GameSession, op_no: int, args: list[Any] | None):
+def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
     """
     Applies the effects of an operator on the game, transforming the state
     """
@@ -79,7 +83,7 @@ def handle_transitions(
             if callable(action):
                 text = action(old_state, new_state, operator)
             else:
-                text = action
+                text = str(action)
             emit(ClientEvent.TRANSITION.value, Transition(text).to_dict(), to=room)
 
         # TODO document this as not default behavior, normally only 1 transition happens

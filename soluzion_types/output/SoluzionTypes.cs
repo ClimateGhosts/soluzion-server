@@ -23,28 +23,49 @@ namespace QuickType
 
     public partial class ServerEvents
     {
+        /// <summary>
+        /// Request for the server to create a new room
+        /// </summary>
         [JsonProperty("create_room")]
         public CreateRoom CreateRoom { get; set; }
 
+        /// <summary>
+        /// Request for the sender to join an existing room, optionally setting a username
+        /// </summary>
         [JsonProperty("join_room")]
         public JoinRoom JoinRoom { get; set; }
 
+        /// <summary>
+        /// Request for a specific operator to be replied within the sender's game session
+        /// </summary>
         [JsonProperty("operator_chosen")]
         public OperatorChosen OperatorChosen { get; set; }
 
+        /// <summary>
+        /// Request to set the sender's username
+        /// </summary>
         [JsonProperty("set_name")]
         public SetName SetName { get; set; }
 
+        /// <summary>
+        /// Request to set the sender's roles
+        /// </summary>
         [JsonProperty("set_roles")]
         public SetRoles SetRoles { get; set; }
     }
 
+    /// <summary>
+    /// Request for the server to create a new room
+    /// </summary>
     public partial class CreateRoom
     {
         [JsonProperty("room")]
         public string Room { get; set; }
     }
 
+    /// <summary>
+    /// Request for the sender to join an existing room, optionally setting a username
+    /// </summary>
     public partial class JoinRoom
     {
         [JsonProperty("room")]
@@ -54,6 +75,9 @@ namespace QuickType
         public string Username { get; set; }
     }
 
+    /// <summary>
+    /// Request for a specific operator to be replied within the sender's game session
+    /// </summary>
     public partial class OperatorChosen
     {
         [JsonProperty("op_no")]
@@ -63,12 +87,18 @@ namespace QuickType
         public object[] Params { get; set; }
     }
 
+    /// <summary>
+    /// Request to set the sender's username
+    /// </summary>
     public partial class SetName
     {
         [JsonProperty("name")]
         public string Name { get; set; }
     }
 
+    /// <summary>
+    /// Request to set the sender's roles
+    /// </summary>
     public partial class SetRoles
     {
         [JsonProperty("roles")]
@@ -77,40 +107,70 @@ namespace QuickType
 
     public partial class ClientEvents
     {
+        /// <summary>
+        /// An error has been caused by one of the ServerEvents this client has sent
+        /// </summary>
         [JsonProperty("error")]
         public Error Error { get; set; }
 
+        /// <summary>
+        /// The game has ended for the current client's room
+        /// </summary>
         [JsonProperty("game_ended")]
         public GameEnded GameEnded { get; set; }
 
         /// <summary>
-        /// This is a comment
+        /// The game has been started for the current client's room
         /// </summary>
         [JsonProperty("game_started")]
         public GameStarted GameStarted { get; set; }
 
+        /// <summary>
+        /// An operator was applied for the current client's game, transforming the state
+        /// </summary>
         [JsonProperty("operator_applied")]
         public OperatorApplied OperatorApplied { get; set; }
 
+        /// <summary>
+        /// A new set of operators is available for the current client
+        /// </summary>
         [JsonProperty("operators_available")]
         public OperatorsAvailable OperatorsAvailable { get; set; }
 
+        /// <summary>
+        /// A user in the current room has a changed set of roles
+        /// </summary>
         [JsonProperty("roles_changed")]
         public RolesChanged RolesChanged { get; set; }
 
+        /// <summary>
+        /// A room/lobby with the given name has been created
+        /// </summary>
         [JsonProperty("room_created")]
         public RoomCreated RoomCreated { get; set; }
 
+        /// <summary>
+        /// A user has joined the client's room
+        /// </summary>
         [JsonProperty("room_joined")]
         public RoomJoined RoomJoined { get; set; }
 
+        /// <summary>
+        /// A user has left the current client's room
+        /// </summary>
         [JsonProperty("room_left")]
         public RoomLeft RoomLeft { get; set; }
 
+        /// <summary>
+        /// A transition event has occurred for the current client's game
+        /// </summary>
         [JsonProperty("transition")]
         public Transition Transition { get; set; }
     }
 
+    /// <summary>
+    /// An error has been caused by one of the ServerEvents this client has sent
+    /// </summary>
     public partial class Error
     {
         [JsonProperty("error")]
@@ -123,6 +183,9 @@ namespace QuickType
         public string Message { get; set; }
     }
 
+    /// <summary>
+    /// The game has ended for the current client's room
+    /// </summary>
     public partial class GameEnded
     {
         [JsonProperty("message")]
@@ -130,25 +193,40 @@ namespace QuickType
     }
 
     /// <summary>
-    /// This is a comment
+    /// The game has been started for the current client's room
     /// </summary>
     public partial class GameStarted
     {
+        /// <summary>
+        /// new state's __str__ message
+        /// </summary>
         [JsonProperty("message")]
         public string Message { get; set; }
 
+        /// <summary>
+        /// JSON representation of new state
+        /// </summary>
         [JsonProperty("state")]
         public string State { get; set; }
     }
 
+    /// <summary>
+    /// An operator was applied for the current client's game, transforming the state
+    /// </summary>
     public partial class OperatorApplied
     {
+        /// <summary>
+        /// new state's __str__ output
+        /// </summary>
         [JsonProperty("message")]
         public string Message { get; set; }
 
         [JsonProperty("operator")]
         public OperatorAppliedOperator Operator { get; set; }
 
+        /// <summary>
+        /// JSON representation of new state
+        /// </summary>
         [JsonProperty("state")]
         public string State { get; set; }
     }
@@ -165,6 +243,9 @@ namespace QuickType
         public object[] Params { get; set; }
     }
 
+    /// <summary>
+    /// A new set of operators is available for the current client
+    /// </summary>
     public partial class OperatorsAvailable
     {
         [JsonProperty("operators")]
@@ -198,8 +279,14 @@ namespace QuickType
         public TypeEnum Type { get; set; }
     }
 
+    /// <summary>
+    /// A user in the current room has a changed set of roles
+    /// </summary>
     public partial class RolesChanged
     {
+        /// <summary>
+        /// Role numbers are indices within the Soluzion problem's ROLES array
+        /// </summary>
         [JsonProperty("roles")]
         public double[] Roles { get; set; }
 
@@ -207,24 +294,36 @@ namespace QuickType
         public string Username { get; set; }
     }
 
+    /// <summary>
+    /// A room/lobby with the given name has been created
+    /// </summary>
     public partial class RoomCreated
     {
         [JsonProperty("room")]
         public string Room { get; set; }
     }
 
+    /// <summary>
+    /// A user has joined the client's room
+    /// </summary>
     public partial class RoomJoined
     {
         [JsonProperty("username")]
         public string Username { get; set; }
     }
 
+    /// <summary>
+    /// A user has left the current client's room
+    /// </summary>
     public partial class RoomLeft
     {
         [JsonProperty("username")]
         public string Username { get; set; }
     }
 
+    /// <summary>
+    /// A transition event has occurred for the current client's game
+    /// </summary>
     public partial class Transition
     {
         [JsonProperty("message")]

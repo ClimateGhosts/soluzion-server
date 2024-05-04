@@ -1,4 +1,4 @@
 {
-  "watch": ["soluzion-types.ts"],
+  "watch": ["soluzion-types.d.ts"],
   "exec": "npm run generateServer"
 }

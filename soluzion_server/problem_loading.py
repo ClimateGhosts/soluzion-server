@@ -5,17 +5,11 @@ from importlib.util import spec_from_file_location, module_from_spec
 import soluzion_server.globals as server_globals
 
 
-def load_problem():
+def load_problem(problem_path: str):
     """
     Loads the Soluzion problem passed in the cli args
     :return:
     """
-
-    if len(sys.argv) < 2:
-        print("Please pass in a path to a Soluzion problem file")
-        exit(1)
-
-    problem_path = sys.argv[1]
     if not problem_path.endswith(".py"):
         problem_path += ".py"
 

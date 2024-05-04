@@ -1,10 +1,23 @@
+import argparse
+
 from flask import Flask
 from flask_socketio import SocketIO
 
-# Load the passed in Soluzion problem
 from soluzion_server.problem_loading import load_problem
 
-load_problem()
+# Setup CLI args
+parser = argparse.ArgumentParser(
+    prog="soluzion_server",
+    description="",
+    epilog="",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument("problem_path", type=str, help="Path to the Soluzion problem file")
+parser.add_argument("-p", "--port", type=int, default=5000, help="port to listen on")
+args = parser.parse_args()
+
+# Load the passed in Soluzion problem
+load_problem(args.problem_path)
 
 # Only import these after the problem has been loaded
 from soluzion_server.room_management import configure_room_handlers
@@ -26,7 +39,7 @@ def main():
     """
     Start the Soluzion Server
     """
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, port=args.port, debug=True, allow_unsafe_werkzeug=True)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,6 @@
     "generateServer": "quicktype soluzion-types.ts -o ../soluzion_server/soluzion_types.py",
     "generateOutput": "npm run generatePyhon && npm run generateC#",
     "generateC#": "quicktype soluzion-types.ts -o output/SoluzionTypes.cs",
-    "generatePyhon": "quicktype soluzion-types.ts -o output/SoluzionTypes.py"
+    "generatePyhon": "quicktype soluzion-types.ts -o output/soluzion_types.py"
   }
 }

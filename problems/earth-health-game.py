@@ -54,17 +54,16 @@ class DisasterType(Enum):
         return f"{self.color()}{self.value}{Color.RESET}"
 
     def color(self):
-        match self:
-            case self.EARTHQUAKE:
-                return Color.GREEN
-            case self.FIRE:
-                return Color.RED
-            case self.FLOOD:
-                return Color.BLUE
-            case self.WINDSTORM:
-                return Color.YELLOW
-            case _:
-                return Color.RESET
+        if self == self.EARTHQUAKE:
+            return Color.GREEN
+        elif self == self.FIRE:
+            return Color.RED
+        elif self == self.FLOOD:
+            return Color.BLUE
+        elif self == self.WINDSTORM:
+            return Color.YELLOW
+        else:
+            return Color.RESET
 
 
 class RegionType(Enum):
@@ -78,19 +77,18 @@ class RegionType(Enum):
         return f"{self.color()}{self.value}{Color.RESET}"
 
     def color(self):
-        match self:
-            case self.OCEAN:
-                return Color.BLUE
-            case self.MOUNTAIN:
-                return Color.CYAN
-            case self.PLAINS:
-                return Color.YELLOW
-            case self.WOODS:
-                return Color.GREEN
-            case self.MESA:
-                return Color.RED
-            case _:
-                return Color.RESET
+        if self == self.OCEAN:
+            return Color.BLUE
+        elif self == self.MOUNTAIN:
+            return Color.CYAN
+        elif self == self.PLAINS:
+            return Color.YELLOW
+        elif self == self.WOODS:
+            return Color.GREEN
+        elif self == self.MESA:
+            return Color.RED
+        else:
+            return Color.RES
 
 
 playable_regions = list(RegionType)[1:]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from typing import Optional, Any, Callable
 
@@ -15,9 +17,9 @@ class ExpandedState(Basic_State):
     def goal_message(self):
         return ""
 
-    def to_json(self):
+    def serialize(self):
         """
-        Serializes the state into a json formatted string
+        Serializes the state into a string
         :return:
         """
         try:

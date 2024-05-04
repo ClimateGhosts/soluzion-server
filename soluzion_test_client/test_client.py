@@ -1,8 +1,25 @@
+import argparse
 import json
 
 import socketio
 
 from soluzion_server.soluzion_types import *
+
+# Setup CLI args
+parser = argparse.ArgumentParser(
+    prog="soluzion_client",
+    description="",
+    epilog="",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "host", type=str, default="localhost", help="host to connect to", nargs="?"
+)
+parser.add_argument(
+    "port", type=int, default=5000, help="port to connect to", nargs="?"
+)
+args = parser.parse_args()
+
 
 sio = socketio.Client()
 
@@ -65,9 +82,14 @@ def any_event(event, data):
 
 def main():
     try:
-        sio.connect("http://localhost:5000")
+        host: str = args.host
+        port: int = args.port
+        if not host.startswith("http"):
+            host = "http://" + host
+        sio.connect(f"{host}:{port}")
+
         print(
-            "SocketIO Client is running. Commands are 'exit', 'create', 'join', 'start'"
+            "SocketIO Client is running. Commands are 'exit', 'create', 'join', 'roles', 'start'"
         )
 
         while True:
