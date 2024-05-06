@@ -1,4 +1,5 @@
 import argparse
+import json
 
 import socketio
 from prompt_toolkit import PromptSession
@@ -104,6 +105,11 @@ def transition(data):
     for line in lines:
         print(line)
     print(frame_horiz)
+
+
+@sio.on("*")
+def any_event(event, data):
+    print(f"\n{event} {json.dumps(data or {})}")
 
 
 # endregion

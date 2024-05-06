@@ -1,6 +1,6 @@
 import argparse
 import inspect
-from typing import get_type_hints, List, Optional, get_origin, get_args, Union
+from typing import get_type_hints, Optional, get_origin, get_args, Union, List
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
@@ -49,7 +49,7 @@ def add_arguments_for_class(parser, cls):
         arg_type = field_type
 
         # Check for list types and handle them
-        if origin is List:
+        if origin is list or origin is List:
             element_type = args[0]
             nargs = "+"
             arg_type = element_type
