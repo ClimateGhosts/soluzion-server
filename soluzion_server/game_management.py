@@ -41,6 +41,8 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
     game.depth += 1
     game.step += 1
 
+    handle_transitions(old_state, new_state, operator, game.room)
+
     emit(
         ClientEvent.OPERATOR_APPLIED.value,
         OperatorApplied(
@@ -50,8 +52,6 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
         ).to_dict(),
         to=game.room,
     )
-
-    handle_transitions(old_state, new_state, operator, game.room)
 
     if new_state.is_goal():
         emit(
@@ -173,6 +173,7 @@ def send_operators_available(game: GameSession):
                     for op_no, op in enumerate(operators)
                 ]
             ).to_dict(),
+            to=sid,
         )
 
 

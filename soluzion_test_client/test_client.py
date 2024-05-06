@@ -1,8 +1,10 @@
 import argparse
 import json
+import threading
 
 import socketio
 from prompt_toolkit import PromptSession
+from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.history import InMemoryHistory
 
 from soluzion_server.soluzion_types import *
@@ -53,6 +55,10 @@ args = parser.parse_args()
 sio = socketio.Client()
 
 
+# Simple lock to keep printed messages coherent
+output_lock = threading.Lock()
+
+
 # region Event Handlers
 
 
@@ -70,25 +76,31 @@ def disconnect():
 def state_updated(data):
     event = OperatorApplied.from_dict(data)
 
+    output_lock.acquire()
     print(event.message)
+    output_lock.release()
 
 
 @sio.on(ClientEvent.GAME_STARTED.value)
 def state_updated(data):
     event = GameStarted.from_dict(data)
 
+    output_lock.acquire()
     print(event.message)
+    output_lock.release()
 
 
 @sio.on(ClientEvent.OPERATORS_AVAILABLE.value)
 def state_updated(data):
     event = OperatorsAvailable.from_dict(data)
 
+    output_lock.acquire()
     if len(event.operators) > 0:
         for operator in event.operators:
             print(f"({int(operator.op_no)}) {operator.name}")
     else:
         print("Waiting for other players to choose operators")
+    output_lock.release()
 
 
 @sio.on(ClientEvent.TRANSITION.value)
@@ -101,15 +113,20 @@ def transition(data):
     length = max(len(line) for line in lines)
 
     frame_horiz = "+-" + length * "-" + "-+"
+
+    output_lock.acquire()
     print(frame_horiz)
     for line in lines:
         print(line)
     print(frame_horiz)
+    output_lock.release()
 
 
 @sio.on("*")
 def any_event(event, data):
+    output_lock.acquire()
     print(f"\n{event} {json.dumps(data or {})}")
+    output_lock.release()
 
 
 # endregion
@@ -137,8 +154,10 @@ def main():
         get_input = lambda: input("")
 
         try:
-            session = PromptSession(history=InMemoryHistory())
-            get_input = lambda: session.prompt("> ")
+            session = PromptSession(
+                history=InMemoryHistory(), cursor=CursorShape.BLINKING_BLOCK
+            )
+            get_input = lambda: session.prompt("")
         except:
             pass
 
@@ -163,7 +182,7 @@ def main():
         while True:
             cmd = get_input().strip().split(" ")
 
-            if len(cmd) == 0:
+            if len(cmd) == 0 or (len(cmd) == 1 and cmd[0] == ""):
                 continue
 
             if cmd[0].isdigit():

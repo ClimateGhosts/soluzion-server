@@ -40,9 +40,7 @@ def configure_room_handlers(socketio: SocketIO):
             )
             return
 
-        room_sessions[event.room] = RoomSession(
-            event.room, request.sid, [request.sid], None
-        )
+        room_sessions[event.room] = RoomSession(event.room, request.sid, [], None)
 
         emit(
             ClientEvent.ROOM_CREATED.value,
@@ -84,6 +82,7 @@ def configure_room_handlers(socketio: SocketIO):
         player.name = event.username
 
         join_room(room.id)
+        room.player_sids.append(request.sid)
 
         emit(
             ClientEvent.ROOM_JOINED.value,
@@ -113,6 +112,7 @@ def configure_room_handlers(socketio: SocketIO):
         player.role = None
 
         leave_room(room.id)
+        room.player_sids.remove(request.sid)
 
         emit(ClientEvent.ROOM_LEFT.value, RoomLeft(username).to_dict(), to=room.id)
 
