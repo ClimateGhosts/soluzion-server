@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="soluzion_server",
-    version="0.1.3",
+    version="0.1.4",
     description="This is a restructured implementation of a Flask + SocketIO server for use with Soluzion framework "
     "problems, with an emphasis on supporting custom clients.",
     author="James Gale",
@@ -16,6 +16,7 @@ setup(
         "flask-socketio~=5.3.6",
         "python-socketio[client]~=5.11.2",
         "prompt_toolkit~=3.0.43",
+        "flask-cors~=4.0.1",
     ],
     entry_points={
         "console_scripts": [

@@ -1,6 +1,7 @@
 import argparse
 
 from flask import Flask
+from flask_cors import CORS
 from flask_socketio import SocketIO
 
 from soluzion_server.problem_loading import load_problem
@@ -27,7 +28,8 @@ from soluzion_server.game_management import configure_game_handlers
 # Configure the flask socketio server
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
-socketio = SocketIO(app, logger=args.debug)
+socketio = SocketIO(app, logger=args.debug, cors_allowed_origins="*")
+cors = CORS(app, resources={r"*": {"origins": "*"}})
 
 # Add the handlers for processing player/room joining
 configure_room_handlers(socketio)

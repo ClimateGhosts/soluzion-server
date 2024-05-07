@@ -24,6 +24,18 @@ def configure_room_handlers(socketio: SocketIO):
         print("Client disconnected:", request.sid)
 
         # TODO more disconnect handling
+        room = current_room(request.sid)
+
+        if room is not None:
+            room.player_sids.remove(request.sid)
+
+            if len(room.player_sids) == 0:
+                print(f"Everyone has left the game in room {room.id}, deleting")
+                room.game = None
+                del room_sessions[room.id]
+
+            elif room.owner_sid == request.sid:
+                room.owner_sid = room.player_sids[0]
 
         del connected_players[request.sid]
 

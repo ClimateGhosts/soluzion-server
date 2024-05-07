@@ -125,7 +125,7 @@ def transition(data):
 @sio.on("*")
 def any_event(event, data):
     output_lock.acquire()
-    print(f"\n{event} {json.dumps(data or {})}")
+    print(f"\n{event} {json.dumps(data or {})}\n")
     output_lock.release()
 
 
