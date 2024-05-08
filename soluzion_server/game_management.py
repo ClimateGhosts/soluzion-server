@@ -167,10 +167,10 @@ def send_operators_available(game: GameSession):
                 [
                     OperatorElement(
                         operator_name(op, state),
-                        op_no,
+                        PROBLEM.OPERATORS.index(op),
                         [Param.from_dict(param) for param in (op.params or [])],
                     )
-                    for op_no, op in enumerate(operators)
+                    for op in operators
                 ]
             ).to_dict(),
             to=sid,
