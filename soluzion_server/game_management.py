@@ -214,6 +214,7 @@ def configure_game_handlers(socketio: SocketIO):
             GameStarted(f"{state}", serialize_state(state)).to_dict(),
             to=room.id,
         )
+        emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
 
         send_operators_available(game)
 
