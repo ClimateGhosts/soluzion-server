@@ -72,7 +72,7 @@ def disconnect():
     print("Disconnected from the server.")
 
 
-@sio.on(ClientEvent.OPERATOR_APPLIED.value)
+@sio.on(ServerToClient.OPERATOR_APPLIED.value)
 def state_updated(data):
     event = OperatorApplied.from_dict(data)
 
@@ -81,7 +81,7 @@ def state_updated(data):
     output_lock.release()
 
 
-@sio.on(ClientEvent.GAME_STARTED.value)
+@sio.on(ServerToClient.GAME_STARTED.value)
 def state_updated(data):
     event = GameStarted.from_dict(data)
 
@@ -90,7 +90,7 @@ def state_updated(data):
     output_lock.release()
 
 
-@sio.on(ClientEvent.OPERATORS_AVAILABLE.value)
+@sio.on(ServerToClient.OPERATORS_AVAILABLE.value)
 def state_updated(data):
     event = OperatorsAvailable.from_dict(data)
 
@@ -103,7 +103,7 @@ def state_updated(data):
     output_lock.release()
 
 
-@sio.on(ClientEvent.TRANSITION.value)
+@sio.on(ServerToClient.TRANSITION.value)
 def transition(data):
     event = Transition.from_dict(data)
     text = event.message
@@ -140,7 +140,7 @@ def main():
             host = "http://" + host
         url = f"{host}:{port}"
 
-        event_parser, subparsers = create_parser(ServerEvents)
+        event_parser, subparsers = create_parser(ClientToServerEvents)
 
         if args.noConnect:
             subparsers.add_parser(
@@ -170,14 +170,14 @@ def main():
         print_help()
 
         if args.quickjoin:
-            sio.emit(ServerEvent.CREATE_ROOM.value, CreateRoom(args.room).to_dict())
+            sio.emit(ClientToServer.CREATE_ROOM.value, CreateRoom(args.room).to_dict())
             sio.emit(
-                ServerEvent.JOIN_ROOM.value,
+                ClientToServer.JOIN_ROOM.value,
                 JoinRoom(args.room, args.username).to_dict(),
             )
             if args.roles is not None:
-                sio.emit(ServerEvent.SET_ROLES.value, SetRoles(args.roles).to_dict())
-            sio.emit(ServerEvent.START_GAME.value, {})
+                sio.emit(ClientToServer.SET_ROLES.value, SetRoles(args.roles).to_dict())
+            sio.emit(ClientToServer.START_GAME.value, {})
 
         while True:
             cmd = get_input().strip().split(" ")

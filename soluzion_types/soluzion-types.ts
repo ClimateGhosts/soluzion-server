@@ -10,12 +10,18 @@ type SharedEvent = "connect" | "disconnect";
 /**
  * Events handled by the server (sent by the client)
  */
-type ServerEvent = keyof ServerEvents;
-type ServerEvents = {
+type ClientToServer = keyof ClientToServerEvents;
+type ClientToServerEvents = {
   /**
    * Request for the server to create a new room
    */
   create_room: {
+    room: string;
+  };
+  /**
+   * Request for the server to delete an empty room
+   */
+  delete_room: {
     room: string;
   };
   /**
@@ -52,17 +58,60 @@ type ServerEvents = {
     op_no: number;
     params: any[] | null;
   };
+  /**
+   * Gets information about the roles of the SOLZUION Problem
+   */
+  list_roles: {};
+  /**
+   * Lists all active rooms
+   */
+  list_rooms: {};
+};
+
+type ClientToServerResponse = {
+  list_roles: {
+    roles: Role[];
+  };
+  list_rooms: {
+    rooms: Room[];
+  };
+};
+
+type Room = {
+  room: string;
+  owner: string;
+  in_game: boolean;
+  players: Player[];
+};
+
+type Player = {
+  sid: string;
+  name: string;
+  roles: number[];
 };
 
 /**
  * Events handled by the client (sent by the server)
  */
-type ClientEvent = keyof ClientEvents;
-type ClientEvents = {
+type ServerToClient = keyof ServerToClientEvents;
+type ServerToClientEvents = {
   /**
-   * A room/lobby with the given name has been created
+   * Inform the client of its sid
+   */
+  your_sid: {
+    sid: string;
+  };
+  /**
+   * A room with the given name has been created
    */
   room_created: {
+    room: string;
+    owner_sid: string;
+  };
+  /**
+   * A room with the given name has been deleted
+   */
+  room_deleted: {
     room: string;
   };
   /**
@@ -77,6 +126,10 @@ type ClientEvents = {
   room_left: {
     username: string;
   };
+  /**
+   * Catch all event for when anything about a room state changes
+   */
+  room_changed: Room;
   /**
    * A user in the current room has a changed set of roles
    */
@@ -147,27 +200,48 @@ type ClientEvents = {
   transition: {
     message: string;
   };
-  /**
-   * An error has been caused by one of the ServerEvents this client has sent
-   */
-  error: {
-    event: ServerEvent;
-    error: ServerError;
+};
+
+type ErrorResponse = {
+  error?: {
+    type: ServerError;
     message: string | null;
-  };
+  } | null;
 };
 
 type ServerError =
   | "RoomAlreadyExists"
   | "NotInARoom"
   | "CantJoinRoom"
+  | "CantDeleteRoom"
   | "GameAlreadyStarted"
   | "GameNotStarted"
   | "InvalidOperator"
-  | "InvalidRoles";
+  | "InvalidRoles"
+  | "ResponseTimeout";
 
 type Role = {
   name: string;
   min: number | null;
   max: number | null;
+};
+
+/**
+ * For a Typescript client, your Socket can have type
+ * ```
+ * Socket<SocketTypes<ServerToClientEvents>, SocketTypes<ClientToServerEvents>>
+ * ```
+ */
+type SocketTypes<
+  T extends Record<string, any>,
+  R extends Record<string, any> = any,
+> = {
+  [K in keyof T]: (
+    event: T[K],
+    callback?: (
+      response: K extends keyof R
+        ? ErrorResponse & R[K]
+        : ErrorResponse | undefined,
+    ) => void,
+  ) => void;
 };

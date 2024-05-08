@@ -44,7 +44,7 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
     handle_transitions(old_state, new_state, operator, game.room)
 
     emit(
-        ClientEvent.OPERATOR_APPLIED.value,
+        ServerToClient.OPERATOR_APPLIED.value,
         OperatorApplied(
             f"{new_state}",
             OperatorAppliedOperator(operator_name(operator, old_state), op_no, args),
@@ -55,7 +55,7 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
 
     if new_state.is_goal():
         emit(
-            ClientEvent.GAME_ENDED.value,
+            ServerToClient.GAME_ENDED.value,
             GameEnded(new_state.goal_message()).to_dict(),
             to=game.room,
         )
@@ -85,7 +85,7 @@ def handle_transitions(
                 text = action(old_state, new_state, operator)
             else:
                 text = str(action)
-            emit(ClientEvent.TRANSITION.value, Transition(text).to_dict(), to=room)
+            emit(ServerToClient.TRANSITION.value, Transition(text).to_dict(), to=room)
 
         # TODO document this as not default behavior, normally only 1 transition happens
         # break
@@ -162,7 +162,7 @@ def send_operators_available(game: GameSession):
     for sid, roles in game.players.items():
         operators = get_applicable_operators(state, roles)
         emit(
-            ClientEvent.OPERATORS_AVAILABLE.value,
+            ServerToClient.OPERATORS_AVAILABLE.value,
             OperatorsAvailable(
                 [
                     OperatorElement(
@@ -182,36 +182,18 @@ def configure_game_handlers(socketio: SocketIO):
     Add the handlers for processing game events
     """
 
-    @socketio.on(ServerEvent.START_GAME.value)
+    @socketio.on(ClientToServer.START_GAME.value)
     def start_game(data):
         room = current_room(request.sid)
         if room is None:
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.NOT_IN_A_ROOM, ServerEvent.START_GAME, None
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.NOT_IN_A_ROOM)
 
         if room.game is not None:
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.GAME_ALREADY_STARTED, ServerEvent.START_GAME, None
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.GAME_ALREADY_STARTED)
 
         roles_error = validate_roles(room)
         if roles_error is not None:
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.INVALID_ROLES, ServerEvent.START_GAME, roles_error
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.INVALID_ROLES, roles_error)
 
         roles = dict(
             (player, connected_players[player].roles) for player in room.player_sids
@@ -228,14 +210,14 @@ def configure_game_handlers(socketio: SocketIO):
         game = room.game = GameSession(state, [], room.owner_sid, room.id, roles)
 
         emit(
-            ClientEvent.GAME_STARTED.value,
+            ServerToClient.GAME_STARTED.value,
             GameStarted(f"{state}", serialize_state(state)).to_dict(),
             to=room.id,
         )
 
         send_operators_available(game)
 
-    @socketio.on(ServerEvent.OPERATOR_CHOSEN.value)
+    @socketio.on(ClientToServer.OPERATOR_CHOSEN.value)
     def operator_chosen(data):
         event = OperatorChosen.from_dict(data)
 
@@ -244,44 +226,16 @@ def configure_game_handlers(socketio: SocketIO):
         game = current_game(request.sid)
 
         if room is None:
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.NOT_IN_A_ROOM, ServerEvent.OPERATOR_CHOSEN, None
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.NOT_IN_A_ROOM)
         if game is None:
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.GAME_NOT_STARTED, ServerEvent.OPERATOR_CHOSEN, None
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.GAME_NOT_STARTED)
         if event.op_no < 0 or event.op_no >= len(PROBLEM.OPERATORS):
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.INVALID_OPERATOR,
-                    ServerEvent.OPERATOR_CHOSEN,
-                    "Out of Bounds",
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.INVALID_OPERATOR, "Out of Bounds")
 
         state = game.current_state
         operator: ExpandedOperator = PROBLEM.OPERATORS[int(event.op_no)]
 
         if not is_operator_applicable(operator, state, player.roles):
-            emit(
-                ClientEvent.ERROR.value,
-                Error(
-                    ServerError.INVALID_OPERATOR,
-                    ServerEvent.OPERATOR_CHOSEN,
-                    "Not applicable",
-                ).to_dict(),
-            )
-            return
+            return error_response(ServerError.INVALID_OPERATOR, "Not Applicable")
 
         apply_operator(game, int(event.op_no), event.params)
