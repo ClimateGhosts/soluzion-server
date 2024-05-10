@@ -70,6 +70,7 @@ class SharedEvent(Enum):
 class ClientToServer(Enum):
     CREATE_ROOM = "create_room"
     DELETE_ROOM = "delete_room"
+    INFO = "info"
     JOIN_ROOM = "join_room"
     LEAVE_ROOM = "leave_room"
     LIST_ROLES = "list_roles"
@@ -215,6 +216,9 @@ class ClientToServerEvents:
     delete_room: DeleteRoom
     """Request for the server to delete an empty room"""
 
+    info: Dict[str, Any]
+    """Get information about the problem and the server"""
+
     join_room: JoinRoom
     """Request for the sender to join an existing room, optionally setting a username"""
 
@@ -239,9 +243,10 @@ class ClientToServerEvents:
     start_game: Dict[str, Any]
     """Request to start the game for the sender's current room"""
 
-    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, join_room: JoinRoom, leave_room: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: Dict[str, Any]) -> None:
+    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, info: Dict[str, Any], join_room: JoinRoom, leave_room: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: Dict[str, Any]) -> None:
         self.create_room = create_room
         self.delete_room = delete_room
+        self.info = info
         self.join_room = join_room
         self.leave_room = leave_room
         self.list_roles = list_roles
@@ -256,6 +261,7 @@ class ClientToServerEvents:
         assert isinstance(obj, dict)
         create_room = CreateRoom.from_dict(obj.get("create_room"))
         delete_room = DeleteRoom.from_dict(obj.get("delete_room"))
+        info = from_dict(lambda x: x, obj.get("info"))
         join_room = JoinRoom.from_dict(obj.get("join_room"))
         leave_room = from_dict(lambda x: x, obj.get("leave_room"))
         list_roles = from_dict(lambda x: x, obj.get("list_roles"))
@@ -264,12 +270,13 @@ class ClientToServerEvents:
         set_name = SetName.from_dict(obj.get("set_name"))
         set_roles = SetRoles.from_dict(obj.get("set_roles"))
         start_game = from_dict(lambda x: x, obj.get("start_game"))
-        return ClientToServerEvents(create_room, delete_room, join_room, leave_room, list_roles, list_rooms, operator_chosen, set_name, set_roles, start_game)
+        return ClientToServerEvents(create_room, delete_room, info, join_room, leave_room, list_roles, list_rooms, operator_chosen, set_name, set_roles, start_game)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["create_room"] = to_class(CreateRoom, self.create_room)
         result["delete_room"] = to_class(DeleteRoom, self.delete_room)
+        result["info"] = from_dict(lambda x: x, self.info)
         result["join_room"] = to_class(JoinRoom, self.join_room)
         result["leave_room"] = from_dict(lambda x: x, self.leave_room)
         result["list_roles"] = from_dict(lambda x: x, self.list_roles)
@@ -278,6 +285,48 @@ class ClientToServerEvents:
         result["set_name"] = to_class(SetName, self.set_name)
         result["set_roles"] = to_class(SetRoles, self.set_roles)
         result["start_game"] = from_dict(lambda x: x, self.start_game)
+        return result
+
+
+class Info:
+    problem_authors: List[str]
+    problem_creation_date: str
+    problem_desc: str
+    problem_name: str
+    problem_version: str
+    server_version: str
+    soluzion_version: str
+
+    def __init__(self, problem_authors: List[str], problem_creation_date: str, problem_desc: str, problem_name: str, problem_version: str, server_version: str, soluzion_version: str) -> None:
+        self.problem_authors = problem_authors
+        self.problem_creation_date = problem_creation_date
+        self.problem_desc = problem_desc
+        self.problem_name = problem_name
+        self.problem_version = problem_version
+        self.server_version = server_version
+        self.soluzion_version = soluzion_version
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'Info':
+        assert isinstance(obj, dict)
+        problem_authors = from_list(from_str, obj.get("problem_authors"))
+        problem_creation_date = from_str(obj.get("problem_creation_date"))
+        problem_desc = from_str(obj.get("problem_desc"))
+        problem_name = from_str(obj.get("problem_name"))
+        problem_version = from_str(obj.get("problem_version"))
+        server_version = from_str(obj.get("server_version"))
+        soluzion_version = from_str(obj.get("soluzion_version"))
+        return Info(problem_authors, problem_creation_date, problem_desc, problem_name, problem_version, server_version, soluzion_version)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["problem_authors"] = from_list(from_str, self.problem_authors)
+        result["problem_creation_date"] = from_str(self.problem_creation_date)
+        result["problem_desc"] = from_str(self.problem_desc)
+        result["problem_name"] = from_str(self.problem_name)
+        result["problem_version"] = from_str(self.problem_version)
+        result["server_version"] = from_str(self.server_version)
+        result["soluzion_version"] = from_str(self.soluzion_version)
         return result
 
 
@@ -400,22 +449,26 @@ class ListRooms:
 
 
 class ClientToServerResponse:
+    info: Info
     list_roles: ListRoles
     list_rooms: ListRooms
 
-    def __init__(self, list_roles: ListRoles, list_rooms: ListRooms) -> None:
+    def __init__(self, info: Info, list_roles: ListRoles, list_rooms: ListRooms) -> None:
+        self.info = info
         self.list_roles = list_roles
         self.list_rooms = list_rooms
 
     @staticmethod
     def from_dict(obj: Any) -> 'ClientToServerResponse':
         assert isinstance(obj, dict)
+        info = Info.from_dict(obj.get("info"))
         list_roles = ListRoles.from_dict(obj.get("list_roles"))
         list_rooms = ListRooms.from_dict(obj.get("list_rooms"))
-        return ClientToServerResponse(list_roles, list_rooms)
+        return ClientToServerResponse(info, list_roles, list_rooms)
 
     def to_dict(self) -> dict:
         result: dict = {}
+        result["info"] = to_class(Info, self.info)
         result["list_roles"] = to_class(ListRoles, self.list_roles)
         result["list_rooms"] = to_class(ListRooms, self.list_rooms)
         return result

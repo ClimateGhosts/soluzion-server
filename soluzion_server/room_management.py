@@ -4,9 +4,22 @@ from flask_socketio import emit, SocketIO, join_room, leave_room
 from soluzion_server.globals import *
 from soluzion_server.globals import RoomSession, PlayerSession
 from soluzion_server.soluzion_types import *
+from importlib.metadata import version
 
 
 def configure_room_handlers(socketio: SocketIO):
+    @socketio.on(ClientToServer.INFO.value)
+    def info(data):
+        return Info(
+            getattr(PROBLEM, "PROBLEM_AUTHORS", []),
+            getattr(PROBLEM, "PROBLEM_CREATION_DATE", ""),
+            getattr(PROBLEM, "PROBLEM_DESC", ""),
+            getattr(PROBLEM, "PROBLEM_NAME", ""),
+            getattr(PROBLEM, "PROBLEM_VERSION", ""),
+            version("soluzion_server"),
+            getattr(PROBLEM, "SOLUZION_VERSION", ""),
+        ).to_dict()
+
     @socketio.on(SharedEvent.CONNECT.value)
     def handle_connect():
         """

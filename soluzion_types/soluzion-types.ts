@@ -66,6 +66,10 @@ type ClientToServerEvents = {
    * Lists all active rooms
    */
   list_rooms: {};
+  /**
+   * Get information about the problem and the server
+   */
+  info: {};
 };
 
 type ClientToServerResponse = {
@@ -74,6 +78,15 @@ type ClientToServerResponse = {
   };
   list_rooms: {
     rooms: Room[];
+  };
+  info: {
+    server_version: string;
+    soluzion_version: string;
+    problem_name: string;
+    problem_version: string;
+    problem_authors: string[];
+    problem_creation_date: string;
+    problem_desc: string;
   };
 };
 
