@@ -8,7 +8,7 @@ from soluzion_server.soluzion import Basic_Operator, Basic_State
 
 class ExpandedState(Basic_State):
 
-    def __init__(self, old=None):
+    def __init__(self, old: ExpandedState = None, args: dict[str, any] = None):
         super().__init__(old)
 
     def __eq__(self, other):
@@ -58,7 +58,9 @@ class Problem:
     ]
 
     # noinspection PyPep8Naming
-    def State(self) -> ExpandedState:
+    def State(
+        self, old: ExpandedState = None, args: dict[str, any] = None
+    ) -> ExpandedState:
         pass
 
     def GET_ARGS(self, op: ExpandedOperator) -> dict[str, dict[str, Any]]:

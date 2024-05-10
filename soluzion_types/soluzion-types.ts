@@ -50,7 +50,12 @@ type ClientToServerEvents = {
   /**
    * Request to start the game for the sender's current room
    */
-  start_game: {};
+  start_game: {
+    /**
+     * If present, args option to past in as a dict to the State() constructor of the SOLUZION problem
+     */
+    args: object | null;
+  };
   /**
    * Request for a specific operator to be replied within the sender's game session
    */

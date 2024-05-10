@@ -184,6 +184,7 @@ def configure_game_handlers(socketio: SocketIO):
 
     @socketio.on(ClientToServer.START_GAME.value)
     def start_game(data):
+        event = StartGame.from_dict(data)
         room = current_room(request.sid)
         if room is None:
             return error_response(ServerError.NOT_IN_A_ROOM)
@@ -199,11 +200,18 @@ def configure_game_handlers(socketio: SocketIO):
             (player, connected_players[player].roles) for player in room.player_sids
         )
 
-        state = (
-            PROBLEM.INITIAL_STATE
-            if hasattr(PROBLEM, "INITIAL_STATE") and PROBLEM.INITIAL_STATE is not None
-            else PROBLEM.State()
-        )
+        state: ExpandedState
+
+        if hasattr(PROBLEM, "INITIAL_STATE") and PROBLEM.INITIAL_STATE is not None:
+            state = PROBLEM.INITIAL_STATE
+        elif event.args is not None:
+            try:
+                state = PROBLEM.State(args=event.args)
+            except Error as e:
+                print(e)
+                state = PROBLEM.State()
+        else:
+            state = PROBLEM.State()
 
         # Start the game session
 

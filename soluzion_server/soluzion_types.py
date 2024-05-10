@@ -209,6 +209,29 @@ class SetRoles:
         return result
 
 
+class StartGame:
+    """Request to start the game for the sender's current room"""
+
+    args: Optional[Dict[str, Any]]
+    """If present, args option to past in as a dict to the State() constructor of the SOLUZION
+    problem
+    """
+
+    def __init__(self, args: Optional[Dict[str, Any]]) -> None:
+        self.args = args
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'StartGame':
+        assert isinstance(obj, dict)
+        args = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("args"))
+        return StartGame(args)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["args"] = from_union([lambda x: from_dict(lambda x: x, x), from_none], self.args)
+        return result
+
+
 class ClientToServerEvents:
     create_room: CreateRoom
     """Request for the server to create a new room"""
@@ -240,10 +263,10 @@ class ClientToServerEvents:
     set_roles: SetRoles
     """Request to set the sender's roles"""
 
-    start_game: Dict[str, Any]
+    start_game: StartGame
     """Request to start the game for the sender's current room"""
 
-    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, info: Dict[str, Any], join_room: JoinRoom, leave_room: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: Dict[str, Any]) -> None:
+    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, info: Dict[str, Any], join_room: JoinRoom, leave_room: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: StartGame) -> None:
         self.create_room = create_room
         self.delete_room = delete_room
         self.info = info
@@ -269,7 +292,7 @@ class ClientToServerEvents:
         operator_chosen = OperatorChosen.from_dict(obj.get("operator_chosen"))
         set_name = SetName.from_dict(obj.get("set_name"))
         set_roles = SetRoles.from_dict(obj.get("set_roles"))
-        start_game = from_dict(lambda x: x, obj.get("start_game"))
+        start_game = StartGame.from_dict(obj.get("start_game"))
         return ClientToServerEvents(create_room, delete_room, info, join_room, leave_room, list_roles, list_rooms, operator_chosen, set_name, set_roles, start_game)
 
     def to_dict(self) -> dict:
@@ -284,7 +307,7 @@ class ClientToServerEvents:
         result["operator_chosen"] = to_class(OperatorChosen, self.operator_chosen)
         result["set_name"] = to_class(SetName, self.set_name)
         result["set_roles"] = to_class(SetRoles, self.set_roles)
-        result["start_game"] = from_dict(lambda x: x, self.start_game)
+        result["start_game"] = to_class(StartGame, self.start_game)
         return result
 
 
