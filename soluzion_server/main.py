@@ -1,6 +1,6 @@
 import argparse
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -36,6 +36,12 @@ configure_room_handlers(socketio)
 
 # Add the handlers for processing game events
 configure_game_handlers(socketio)
+
+
+# Health Endpoint
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
 
 
 def main():
