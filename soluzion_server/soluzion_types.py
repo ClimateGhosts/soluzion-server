@@ -50,14 +50,14 @@ def to_class(c: Type[T], x: Any) -> dict:
     return cast(Any, x).to_dict()
 
 
-def from_bool(x: Any) -> bool:
-    assert isinstance(x, bool)
-    return x
-
-
 def to_enum(c: Type[EnumT], x: Any) -> EnumT:
     assert isinstance(x, c)
     return x.value
+
+
+def from_bool(x: Any) -> bool:
+    assert isinstance(x, bool)
+    return x
 
 
 class SharedEvent(Enum):
@@ -73,6 +73,7 @@ class ClientToServer(Enum):
     INFO = "info"
     JOIN_ROOM = "join_room"
     LEAVE_ROOM = "leave_room"
+    LIST_OPTIONS = "list_options"
     LIST_ROLES = "list_roles"
     LIST_ROOMS = "list_rooms"
     OPERATOR_CHOSEN = "operator_chosen"
@@ -248,6 +249,9 @@ class ClientToServerEvents:
     leave_room: Dict[str, Any]
     """Request for the sender to leave their current room"""
 
+    list_options: Dict[str, Any]
+    """Lists any options the game has"""
+
     list_roles: Dict[str, Any]
     """Gets information about the roles of the SOLZUION Problem"""
 
@@ -266,12 +270,13 @@ class ClientToServerEvents:
     start_game: StartGame
     """Request to start the game for the sender's current room"""
 
-    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, info: Dict[str, Any], join_room: JoinRoom, leave_room: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: StartGame) -> None:
+    def __init__(self, create_room: CreateRoom, delete_room: DeleteRoom, info: Dict[str, Any], join_room: JoinRoom, leave_room: Dict[str, Any], list_options: Dict[str, Any], list_roles: Dict[str, Any], list_rooms: Dict[str, Any], operator_chosen: OperatorChosen, set_name: SetName, set_roles: SetRoles, start_game: StartGame) -> None:
         self.create_room = create_room
         self.delete_room = delete_room
         self.info = info
         self.join_room = join_room
         self.leave_room = leave_room
+        self.list_options = list_options
         self.list_roles = list_roles
         self.list_rooms = list_rooms
         self.operator_chosen = operator_chosen
@@ -287,13 +292,14 @@ class ClientToServerEvents:
         info = from_dict(lambda x: x, obj.get("info"))
         join_room = JoinRoom.from_dict(obj.get("join_room"))
         leave_room = from_dict(lambda x: x, obj.get("leave_room"))
+        list_options = from_dict(lambda x: x, obj.get("list_options"))
         list_roles = from_dict(lambda x: x, obj.get("list_roles"))
         list_rooms = from_dict(lambda x: x, obj.get("list_rooms"))
         operator_chosen = OperatorChosen.from_dict(obj.get("operator_chosen"))
         set_name = SetName.from_dict(obj.get("set_name"))
         set_roles = SetRoles.from_dict(obj.get("set_roles"))
         start_game = StartGame.from_dict(obj.get("start_game"))
-        return ClientToServerEvents(create_room, delete_room, info, join_room, leave_room, list_roles, list_rooms, operator_chosen, set_name, set_roles, start_game)
+        return ClientToServerEvents(create_room, delete_room, info, join_room, leave_room, list_options, list_roles, list_rooms, operator_chosen, set_name, set_roles, start_game)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -302,6 +308,7 @@ class ClientToServerEvents:
         result["info"] = from_dict(lambda x: x, self.info)
         result["join_room"] = to_class(JoinRoom, self.join_room)
         result["leave_room"] = from_dict(lambda x: x, self.leave_room)
+        result["list_options"] = from_dict(lambda x: x, self.list_options)
         result["list_roles"] = from_dict(lambda x: x, self.list_roles)
         result["list_rooms"] = from_dict(lambda x: x, self.list_rooms)
         result["operator_chosen"] = to_class(OperatorChosen, self.operator_chosen)
@@ -350,6 +357,71 @@ class Info:
         result["problem_version"] = from_str(self.problem_version)
         result["server_version"] = from_str(self.server_version)
         result["soluzion_version"] = from_str(self.soluzion_version)
+        return result
+
+
+class OptionType(Enum):
+    BOOL = "bool"
+    FLOAT = "float"
+    INT = "int"
+    STR = "str"
+
+
+class Option:
+    default: Any
+    description: Optional[str]
+    """Game options without a description will not be shown to the client by default"""
+
+    max: Optional[float]
+    min: Optional[float]
+    name: str
+    type: OptionType
+
+    def __init__(self, default: Any, description: Optional[str], max: Optional[float], min: Optional[float], name: str, type: OptionType) -> None:
+        self.default = default
+        self.description = description
+        self.max = max
+        self.min = min
+        self.name = name
+        self.type = type
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'Option':
+        assert isinstance(obj, dict)
+        default = obj.get("default")
+        description = from_union([from_none, from_str], obj.get("description"))
+        max = from_union([from_none, from_float], obj.get("max"))
+        min = from_union([from_none, from_float], obj.get("min"))
+        name = from_str(obj.get("name"))
+        type = OptionType(obj.get("type"))
+        return Option(default, description, max, min, name, type)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["default"] = self.default
+        result["description"] = from_union([from_none, from_str], self.description)
+        result["max"] = from_union([from_none, to_float], self.max)
+        result["min"] = from_union([from_none, to_float], self.min)
+        result["name"] = from_str(self.name)
+        result["type"] = to_enum(OptionType, self.type)
+        return result
+
+
+class ListOptions:
+    options: List[Option]
+
+    def __init__(self, options: List[Option]) -> None:
+        self.options = options
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'ListOptions':
+        assert isinstance(obj, dict)
+        options = from_list(Option.from_dict, obj.get("options"))
+        return ListOptions(options)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["options"] = from_list(lambda x: to_class(Option, x), self.options)
         return result
 
 
@@ -473,11 +545,13 @@ class ListRooms:
 
 class ClientToServerResponse:
     info: Info
+    list_options: ListOptions
     list_roles: ListRoles
     list_rooms: ListRooms
 
-    def __init__(self, info: Info, list_roles: ListRoles, list_rooms: ListRooms) -> None:
+    def __init__(self, info: Info, list_options: ListOptions, list_roles: ListRoles, list_rooms: ListRooms) -> None:
         self.info = info
+        self.list_options = list_options
         self.list_roles = list_roles
         self.list_rooms = list_rooms
 
@@ -485,13 +559,15 @@ class ClientToServerResponse:
     def from_dict(obj: Any) -> 'ClientToServerResponse':
         assert isinstance(obj, dict)
         info = Info.from_dict(obj.get("info"))
+        list_options = ListOptions.from_dict(obj.get("list_options"))
         list_roles = ListRoles.from_dict(obj.get("list_roles"))
         list_rooms = ListRooms.from_dict(obj.get("list_rooms"))
-        return ClientToServerResponse(info, list_roles, list_rooms)
+        return ClientToServerResponse(info, list_options, list_roles, list_rooms)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["info"] = to_class(Info, self.info)
+        result["list_options"] = to_class(ListOptions, self.list_options)
         result["list_roles"] = to_class(ListRoles, self.list_roles)
         result["list_rooms"] = to_class(ListRooms, self.list_rooms)
         return result
@@ -698,7 +774,7 @@ class OperatorApplied:
         return result
 
 
-class TypeEnum(Enum):
+class ParamType(Enum):
     FLOAT = "float"
     INT = "int"
     STR = "str"
@@ -708,9 +784,9 @@ class Param:
     max: Optional[float]
     min: Optional[float]
     name: str
-    type: TypeEnum
+    type: ParamType
 
-    def __init__(self, max: Optional[float], min: Optional[float], name: str, type: TypeEnum) -> None:
+    def __init__(self, max: Optional[float], min: Optional[float], name: str, type: ParamType) -> None:
         self.max = max
         self.min = min
         self.name = name
@@ -722,7 +798,7 @@ class Param:
         max = from_union([from_none, from_float], obj.get("max"))
         min = from_union([from_none, from_float], obj.get("min"))
         name = from_str(obj.get("name"))
-        type = TypeEnum(obj.get("type"))
+        type = ParamType(obj.get("type"))
         return Param(max, min, name, type)
 
     def to_dict(self) -> dict:
@@ -730,7 +806,7 @@ class Param:
         result["max"] = from_union([from_none, to_float], self.max)
         result["min"] = from_union([from_none, to_float], self.min)
         result["name"] = from_str(self.name)
-        result["type"] = to_enum(TypeEnum, self.type)
+        result["type"] = to_enum(ParamType, self.type)
         return result
 
 
@@ -1152,6 +1228,46 @@ class Role:
         return result
 
 
+class GameOption:
+    default: Any
+    description: Optional[str]
+    """Game options without a description will not be shown to the client by default"""
+
+    max: Optional[float]
+    min: Optional[float]
+    name: str
+    type: OptionType
+
+    def __init__(self, default: Any, description: Optional[str], max: Optional[float], min: Optional[float], name: str, type: OptionType) -> None:
+        self.default = default
+        self.description = description
+        self.max = max
+        self.min = min
+        self.name = name
+        self.type = type
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'GameOption':
+        assert isinstance(obj, dict)
+        default = obj.get("default")
+        description = from_union([from_none, from_str], obj.get("description"))
+        max = from_union([from_none, from_float], obj.get("max"))
+        min = from_union([from_none, from_float], obj.get("min"))
+        name = from_str(obj.get("name"))
+        type = OptionType(obj.get("type"))
+        return GameOption(default, description, max, min, name, type)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        result["default"] = self.default
+        result["description"] = from_union([from_none, from_str], self.description)
+        result["max"] = from_union([from_none, to_float], self.max)
+        result["min"] = from_union([from_none, to_float], self.min)
+        result["name"] = from_str(self.name)
+        result["type"] = to_enum(OptionType, self.type)
+        return result
+
+
 class SocketTypesTR:
     """For a Typescript client, your Socket can have type
     ```
@@ -1259,6 +1375,14 @@ def role_from_dict(s: Any) -> Role:
 
 def role_to_dict(x: Role) -> Any:
     return to_class(Role, x)
+
+
+def game_option_from_dict(s: Any) -> GameOption:
+    return GameOption.from_dict(s)
+
+
+def game_option_to_dict(x: GameOption) -> Any:
+    return to_class(GameOption, x)
 
 
 def socket_types_from_dict(s: Any) -> SocketTypesTR:

@@ -1,10 +1,11 @@
+from importlib.metadata import version
+
 from flask import request
 from flask_socketio import emit, SocketIO, join_room, leave_room
 
 from soluzion_server.globals import *
 from soluzion_server.globals import RoomSession, PlayerSession
 from soluzion_server.soluzion_types import *
-from importlib.metadata import version
 
 
 def configure_room_handlers(socketio: SocketIO):
@@ -191,9 +192,22 @@ def configure_room_handlers(socketio: SocketIO):
 
     @socketio.on(ClientToServer.LIST_ROLES.value)
     def on_list_rooms(data):
+        if not hasattr(PROBLEM, "ROLES"):
+            return ListRoles([]).to_dict()
         try:
             return ListRoles(
                 [RoleElement.from_dict(role) for role in PROBLEM.ROLES or []]
+            ).to_dict()
+        except Error:
+            return error_response(ServerError.INVALID_ROLES)
+
+    @socketio.on(ClientToServer.LIST_OPTIONS.value)
+    def on_list_options(data):
+        if not hasattr(PROBLEM, "OPTIONS"):
+            return ListOptions([]).to_dict()
+        try:
+            return ListOptions(
+                [Option.from_dict(options) for options in PROBLEM.OPTIONS or []]
             ).to_dict()
         except Error:
             return error_response(ServerError.INVALID_ROLES)

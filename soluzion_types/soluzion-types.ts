@@ -72,6 +72,10 @@ type ClientToServerEvents = {
    */
   list_rooms: {};
   /**
+   * Lists any options the game has
+   */
+  list_options: {};
+  /**
    * Get information about the problem and the server
    */
   info: {};
@@ -83,6 +87,9 @@ type ClientToServerResponse = {
   };
   list_rooms: {
     rooms: Room[];
+  };
+  list_options: {
+    options: GameOption[];
   };
   info: {
     server_version: string;
@@ -240,6 +247,18 @@ type ServerError =
 
 type Role = {
   name: string;
+  min: number | null;
+  max: number | null;
+};
+
+type GameOption = {
+  name: string;
+  type: "str" | "int" | "float" | "bool";
+  default: any;
+  /**
+   * Game options without a description will not be shown to the client by default
+   */
+  description: string | null;
   min: number | null;
   max: number | null;
 };

@@ -50,6 +50,7 @@ class Problem:
     OPERATORS: list[ExpandedOperator]
     INITIAL_STATE: Optional[ExpandedState]
     ROLES: list[dict[str, Any]]
+    OPTIONS: Optional[list[dict[str, Any]]]
     TRANSITIONS: list[
         tuple[
             Callable[[ExpandedState, ExpandedState, ExpandedOperator], bool],
