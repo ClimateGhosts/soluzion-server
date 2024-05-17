@@ -113,6 +113,16 @@ def validate_roles(room: RoomSession):
         if role.max is not None and count > role.max:
             return f"Too many players for role {role.name}"
 
+    try:
+        if hasattr(PROBLEM, "VALIDATE_ROLES") and callable(PROBLEM.VALIDATE_ROLES):
+            result = PROBLEM.VALIDATE_ROLES(
+                [connected_players[sid].roles for sid in room.player_sids]
+            )
+            if result is not None:
+                return str(result)
+    except Exception as e:
+        return str(e)
+
     return None
 
 

@@ -65,3 +65,6 @@ class Problem:
 
     def GET_ARGS(self, op: ExpandedOperator) -> dict[str, dict[str, Any]]:
         pass
+
+    def VALIDATE_ROLES(self, roles: list[set[int]]) -> str | None:
+        pass
