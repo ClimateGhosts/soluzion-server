@@ -30,6 +30,10 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
     operator: ExpandedOperator = PROBLEM.OPERATORS[op_no]
 
     old_state = game.current_state
+
+    if old_state.is_goal():
+        return
+
     new_state: ExpandedState
     if operator.params is None or args is None:
         new_state = operator.apply(old_state)
@@ -60,10 +64,7 @@ def apply_operator(game: GameSession, op_no: int, args: Optional[list[Any]]):
             to=game.room,
         )
 
-        # TODO end game session
-
-    else:
-        send_operators_available(game)
+    send_operators_available(game)
 
 
 def handle_transitions(
@@ -132,6 +133,10 @@ def is_operator_applicable(
     """
     Check if operator is applicable, working whether roles are defined or not
     """
+
+    if state.is_goal():
+        return False
+
     if roles is None or len(roles) == 0:
         return op.is_applicable(state)
 

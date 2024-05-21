@@ -206,8 +206,6 @@ def configure_room_handlers(socketio: SocketIO):
         if not hasattr(PROBLEM, "OPTIONS"):
             return ListOptions([]).to_dict()
         try:
-            return ListOptions(
-                [Option.from_dict(options) for options in PROBLEM.OPTIONS or []]
-            ).to_dict()
+            return {"options": PROBLEM.OPTIONS or []}
         except Error:
             return error_response(ServerError.INVALID_ROLES)
