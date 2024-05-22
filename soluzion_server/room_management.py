@@ -10,14 +10,15 @@ from soluzion_server.soluzion_types import *
 
 def on_room_changed(room: RoomSession):
     if len(room.player_sids) == 0:
-        print(f"Everyone has left the game in room {room.id}, deleting")
-        room.game = None
-        del room_sessions[room.id]
-        emit(
-            ServerToClient.ROOM_DELETED.value,
-            RoomDeleted(room.id).to_dict(),
-            broadcast=True,
-        )
+        if room.game is not None:
+            print(f"Everyone has left the game in room {room.id}, deleting")
+            room.game = None
+            del room_sessions[room.id]
+            emit(
+                ServerToClient.ROOM_DELETED.value,
+                RoomDeleted(room.id).to_dict(),
+                broadcast=True,
+            )
     elif room.owner_sid not in room.player_sids:
         room.owner_sid = room.player_sids[0]
 
@@ -59,15 +60,7 @@ def configure_room_handlers(socketio: SocketIO):
 
         print("Client disconnected:", request.sid)
 
-        room = current_room(request.sid)
-
-        if room is not None:
-            emit(
-                ServerToClient.ROOM_LEFT.value,
-                RoomLeft(connected_players[request.sid].name).to_dict(),
-                to=room.id,
-            )
-            on_room_changed(room)
+        on_leave_room({})
 
         del connected_players[request.sid]
 
