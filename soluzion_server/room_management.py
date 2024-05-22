@@ -8,6 +8,22 @@ from soluzion_server.globals import RoomSession, PlayerSession
 from soluzion_server.soluzion_types import *
 
 
+def on_room_changed(room: RoomSession):
+    if len(room.player_sids) == 0:
+        print(f"Everyone has left the game in room {room.id}, deleting")
+        room.game = None
+        del room_sessions[room.id]
+        emit(
+            ServerToClient.ROOM_DELETED.value,
+            RoomDeleted(room.id).to_dict(),
+            broadcast=True,
+        )
+    elif room.owner_sid not in room.player_sids:
+        room.owner_sid = room.player_sids[0]
+
+    emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
+
+
 def configure_room_handlers(socketio: SocketIO):
     @socketio.on(ClientToServer.INFO.value)
     def info(data):
@@ -43,24 +59,15 @@ def configure_room_handlers(socketio: SocketIO):
 
         print("Client disconnected:", request.sid)
 
-        # TODO more disconnect handling
         room = current_room(request.sid)
 
         if room is not None:
-            room.player_sids.remove(request.sid)
-
-            if len(room.player_sids) == 0:
-                print(f"Everyone has left the game in room {room.id}, deleting")
-                room.game = None
-                del room_sessions[room.id]
-                emit(
-                    ServerToClient.ROOM_DELETED.value,
-                    RoomDeleted(room.id).to_dict(),
-                    broadcast=True,
-                )
-
-            elif room.owner_sid == request.sid:
-                room.owner_sid = room.player_sids[0]
+            emit(
+                ServerToClient.ROOM_LEFT.value,
+                RoomLeft(connected_players[request.sid].name).to_dict(),
+                to=room.id,
+            )
+            on_room_changed(room)
 
         del connected_players[request.sid]
 
@@ -131,7 +138,7 @@ def configure_room_handlers(socketio: SocketIO):
             RoomJoined(event.username).to_dict(),
             to=room.id,
         )
-        emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
+        on_room_changed(room)
 
     @socketio.on(ClientToServer.LEAVE_ROOM.value)
     def on_leave_room(data):
@@ -150,7 +157,7 @@ def configure_room_handlers(socketio: SocketIO):
         room.player_sids.remove(request.sid)
 
         emit(ServerToClient.ROOM_LEFT.value, RoomLeft(username).to_dict(), to=room.id)
-        emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
+        on_room_changed(room)
 
     @socketio.on(ClientToServer.SET_NAME.value)
     def on_set_name(data):
@@ -162,7 +169,7 @@ def configure_room_handlers(socketio: SocketIO):
 
         if player.room is not None:
             room = current_room(request.sid)
-            emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
+            on_room_changed(room)
 
     @socketio.on(ClientToServer.SET_ROLES.value)
     def on_set_roles(data):
@@ -182,7 +189,7 @@ def configure_room_handlers(socketio: SocketIO):
             to=room.id,
         )
 
-        emit(ServerToClient.ROOM_CHANGED.value, room.to_dict(), broadcast=True)
+        on_room_changed(room)
 
     @socketio.on(ClientToServer.LIST_ROOMS.value)
     def on_list_rooms(data):
